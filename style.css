@@ -1,0 +1,190 @@
+/* ====== VARIÁVEIS DE COR ====== */
+/* Assim fica fácil trocar as cores depois */
+:root {
+  --fundo-escuro: #12121c;        /* fundo geral da página */
+  --fundo-card: rgba(255, 255, 255, 0.06); /* fundo translúcido dos cards */
+  --borda-card: rgba(255, 255, 255, 0.15); /* borda clara dos cards */
+  --roxo: #a259ff;                /* cor principal (roxo/violeta) */
+  --azul-suave: #7ec8ff;          /* cor secundária (azul suave) */
+  --texto-claro: #f1f1f7;         /* texto principal */
+  --texto-fraco: #b8b8c8;         /* texto de apoio */
+  --bom: #4ade80;                 /* verde para "Bom desempenho" */
+  --atencao: #fbbf24;             /* amarelo para "Atenção" */
+  --neutro: #9ca3af;              /* cinza para "Nota ainda não disponível" */
+}
+
+/* ====== RESET BÁSICO ====== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ====== CORPO DA PÁGINA ====== */
+body {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background-color: var(--fundo-escuro);
+  color: var(--texto-claro);
+  min-height: 100vh;
+  padding: 20px;
+  /* Gradiente sutil de fundo para dar profundidade */
+  background-image:
+    radial-gradient(circle at top left, rgba(162, 89, 255, 0.15), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(126, 200, 255, 0.1), transparent 40%);
+}
+
+/* ====== CABEÇALHO ====== */
+.cabecalho {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--borda-card);
+}
+
+.cabecalho h1 {
+  font-size: 2rem;
+  color: var(--roxo);
+  letter-spacing: 1px;
+}
+
+.subtitulo {
+  font-size: 1.1rem;
+  color: var(--azul-suave);
+  margin-top: 6px;
+}
+
+.estudante {
+  font-size: 0.95rem;
+  color: var(--texto-fraco);
+  margin-top: 4px;
+}
+
+/* ====== ÁREA DE CARDS ====== */
+.cards {
+  display: grid;
+  /* Cria colunas que se ajustam sozinhas conforme a tela */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+/* Estilo "vidro" (glassmorphism) dos cards */
+.card {
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Desfoque do fundo para dar o efeito de vidro */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--roxo);
+}
+
+.card-icone {
+  font-size: 1.4rem;
+}
+
+.card-titulo {
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-valor {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--azul-suave);
+}
+
+.card-extra {
+  font-size: 0.8rem;
+  color: var(--bom);
+}
+
+/* ====== TABELA ====== */
+.tabela-area {
+  /* Permite rolagem horizontal no celular sem quebrar o layout */
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid var(--borda-card);
+}
+
+.tabela-boletim {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px; /* garante que a tabela não fique espremida no celular */
+  background: var(--fundo-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.tabela-boletim thead {
+  background-color: rgba(162, 89, 255, 0.25);
+}
+
+.tabela-boletim th,
+.tabela-boletim td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--borda-card);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.tabela-boletim th {
+  color: var(--azul-suave);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.tabela-boletim tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* ====== CORES DAS SITUAÇÕES ====== */
+.situacao-bom {
+  color: var(--bom);
+  font-weight: 600;
+}
+
+.situacao-atencao {
+  color: var(--atencao);
+  font-weight: 600;
+}
+
+.situacao-neutra {
+  color: var(--neutro);
+  font-style: italic;
+}
+
+/* ====== RESPONSIVIDADE ====== */
+@media (max-width: 600px) {
+  body {
+    padding: 12px;
+  }
+
+  .cabecalho h1 {
+    font-size: 1.5rem;
+  }
+
+  .card-valor {
+    font-size: 1.2rem;
+  }
+
+  .tabela-boletim th,
+  .tabela-boletim td {
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+}
