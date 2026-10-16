@@ -17,7 +17,32 @@
     <p class="estudante">Estudante Exemplo</p>
   </header>
 
-  <main class="conteudo">
+  <!-- ÁREA DE ACESSO POR PIN -->
+  <!-- Turma e chamada são preenchidas pelo JavaScript e não podem ser editadas -->
+  <section class="acesso" id="area-acesso">
+    <form class="acesso-form" id="form-acesso" autocomplete="off">
+      <h2 class="acesso-titulo">Acesso ao boletim</h2>
+      <p class="acesso-info">Série: <strong>8º Ano</strong></p>
+      <p class="acesso-info">Turma: <strong id="acesso-turma">—</strong></p>
+      <p class="acesso-info">Número de chamada: <strong id="acesso-chamada">—</strong></p>
+
+      <label class="acesso-label" for="campo-pin">PIN</label>
+      <input type="password" id="campo-pin" class="acesso-campo" autocomplete="off" maxlength="50" />
+
+      <button type="submit" id="botao-entrar" class="botao">Entrar</button>
+      <p class="mensagem" id="mensagem-acesso" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <!-- O boletim fica escondido até o login ser feito -->
+  <main class="conteudo" id="area-boletim" hidden>
+
+    <!-- BOTÕES DE EDIÇÃO -->
+    <div class="barra-acoes">
+      <button type="button" id="botao-editar" class="botao">Alterar dados</button>
+      <button type="button" id="botao-salvar" class="botao botao-salvar" hidden>Salvar alterações</button>
+    </div>
+    <p class="mensagem" id="mensagem-edicao" role="status" aria-live="polite"></p>
 
     <!-- ÁREA DOS CARDS DE RESUMO -->
     <!-- Os valores serão preenchidos pelo JavaScript -->
