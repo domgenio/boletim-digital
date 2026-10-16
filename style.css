@@ -96,4 +96,147 @@ body {
   font-size: 0.85rem;
   color: var(--texto-fraco);
   text-transform: uppercase;
-  letter-spacing:
+  letter-spacing: 0.5px;
+}
+
+.card-valor {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--azul-suave);
+}
+
+.card-extra {
+  font-size: 0.8rem;
+  color: var(--bom);
+}
+
+/* ====== TABELA ====== */
+.tabela-area {
+  /* Permite rolagem horizontal no celular sem quebrar o layout */
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid var(--borda-card);
+}
+
+.tabela-boletim {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px; /* garante que a tabela não fique espremida no celular */
+  background: var(--fundo-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.tabela-boletim thead {
+  background-color: rgba(162, 89, 255, 0.25);
+}
+
+.tabela-boletim th,
+.tabela-boletim td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--borda-card);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.tabela-boletim th {
+  color: var(--azul-suave);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.tabela-boletim tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* ====== CORES DAS SITUAÇÕES ====== */
+.situacao-bom {
+  color: var(--bom);
+  font-weight: 600;
+}
+
+.situacao-atencao {
+  color: var(--atencao);
+  font-weight: 600;
+}
+
+.situacao-neutra {
+  color: var(--neutro);
+  font-style: italic;
+}
+
+/* ====== RESPONSIVIDADE ====== */
+@media (max-width: 600px) {
+  body {
+    padding: 12px;
+  }
+
+  .cabecalho h1 {
+    font-size: 1.5rem;
+  }
+
+  .card-valor {
+    font-size: 1.2rem;
+  }
+
+  .tabela-boletim th,
+  .tabela-boletim td {
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+}
+
+/* =========================================================
+   NOVOS ESTILOS - ACESSO POR PIN E EDIÇÃO
+   (acrescentados ao final, usando as mesmas cores do projeto)
+   ========================================================= */
+
+/* Garante que elementos com o atributo "hidden" realmente sumam */
+[hidden] {
+  display: none !important;
+}
+
+/* ====== ÁREA DE ACESSO ====== */
+.acesso {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.acesso-form {
+  width: 100%;
+  max-width: 360px;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.acesso-titulo {
+  font-size: 1.2rem;
+  color: var(--roxo);
+  margin-bottom: 6px;
+}
+
+.acesso-info {
+  font-size: 0.9rem;
+  color: var(--texto-fraco);
+}
+
+.acesso-info strong {
+  color: var(--azul-suave);
+}
+
+.acesso-label {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
