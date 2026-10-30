@@ -34,6 +34,9 @@ const disciplinas = [
 /* ---------- CONSTANTES ---------- */
 const MEDIA_MINIMA = 6.0; // média mínima de referência
 
+// Referência INTERNA de risco (não exibir na interface!)
+const REFERENCIA_FALTAS = 350;
+
 /* =========================================================
    FUNÇÃO: normalizarNota(valor)
    Converte qualquer formato de nota para a escala 0–10.
@@ -432,11 +435,13 @@ function atualizarCards(resultados) {
 /* =========================================================
    FUNÇÃO: renderizar()
    Atualiza a tabela e os cards com os dados atuais.
+   (Também atualiza os gráficos, no final.)
    ========================================================= */
 function renderizar() {
   const resultados = processarDados(dadosAtuais);
   desenharTabela(resultados);
   atualizarCards(resultados);
+  atualizarGraficos(); // apenas leitura: desenha os gráficos a partir de dadosAtuais
 }
 
 /* =========================================================
@@ -657,3 +662,236 @@ botaoEditar.addEventListener("click", () => {
 botaoSalvar.addEventListener("click", salvarAlteracoes);
 
 formAcesso.addEventListener("submit", abrirBoletim);
+
+/* =========================================================
+   =========================================================
+   GRÁFICOS (Chart.js)
+   =========================================================
+   - Apenas LEITURA dos dados já carregados (dadosAtuais).
+   - Nunca altera notas, faltas, disciplinas ou estado.
+   - Nunca envia nada para a API.
+   ========================================================= */
+
+/* ---------- Instâncias dos gráficos ---------- */
+let graficoMedias = null;
+let graficoEvolucao = null;
+let graficoFaltas = null;
+
+/* ---------- Utilitário: lê uma variável de cor do CSS ---------- */
+function corDoTema(nomeVariavel, padrao) {
+  const valor = getComputedStyle(document.documentElement)
+    .getPropertyValue(nomeVariavel)
+    .trim();
+  return valor || padrao;
+}
+
+/* ---------- Configuração comum de fonte/tooltip ---------- */
+function configuracaoComum() {
+  const textoClaro = corDoTema("--texto-claro", "#f1f1f7");
+  const textoFraco = corDoTema("--texto-fraco", "#b8b8c8");
+  const borda = corDoTema("--borda-card", "rgba(255,255,255,0.15)");
+
+  return {
+    color: textoClaro,
+    plugins: {
+      legend: { labels: { color: textoClaro } },
+      tooltip: {
+        backgroundColor: "rgba(18,18,28,0.95)",
+        titleColor: textoClaro,
+        bodyColor: textoFraco,
+        borderColor: borda,
+        borderWidth: 1
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: textoFraco },
+        grid: { color: borda }
+      },
+      y: {
+        ticks: { color: textoFraco },
+        grid: { color: borda }
+      }
+    }
+  };
+}
+
+/* =========================================================
+   GRÁFICO 1 — Média por disciplina (barras horizontais)
+   ========================================================= */
+function atualizarGraficoMedias() {
+  const canvas = document.getElementById("graficoMediasDisciplinas");
+  if (!canvas) return;
+
+  // Processa os dados (leitura — não altera nada)
+  const resultados = processarDados(dadosAtuais);
+
+  // Nomes das disciplinas e médias (null vira null mesmo)
+  const labels = resultados.map((r) => r.disciplina);
+  const medias = resultados.map((r) => (r.media === null ? null : Number(r.media.toFixed(1))));
+
+  const roxo = corDoTema("--roxo", "#a259ff");
+  const azul = corDoTema("--azul-suave", "#7ec8ff");
+  const base = configuracaoComum();
+
+  if (graficoMedias) {
+    graficoMedias.destroy();
+  }
+
+  graficoMedias = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Média",
+          data: medias,
+          backgroundColor: roxo,
+          borderColor: azul,
+          borderWidth: 1,
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      color: base.color,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...base.plugins.tooltip,
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed.x;
+              return v === null || v === undefined
+                ? "Ainda não lançada"
+                : "Média: " + Number(v).toFixed(1).replace(".", ",");
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: 10,
+          ticks: { color: base.scales.x.ticks.color },
+          grid: { color: base.scales.x.grid.color }
+        },
+        y: {
+          ticks: { color: base.scales.y.ticks.color, autoSkip: false },
+          grid: { color: base.scales.y.grid.color }
+        }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   GRÁFICO 2 — Evolução da média geral (linha)
+   ========================================================= */
+function atualizarGraficoEvolucao() {
+  const canvas = document.getElementById("graficoEvolucaoTrimestres");
+  if (!canvas) return;
+
+  // Lê os tri1, tri2 e tri3 de cada disciplina e calcula a média
+  // geral de cada trimestre usando SOMENTE notas válidas.
+  function mediaDoTrimestre(campo) {
+    const validas = dadosAtuais
+      .map((d) => normalizarNota(d[campo]))
+      .filter((n) => n !== null);
+
+    if (validas.length === 0) return null;
+
+    let soma = 0;
+    validas.forEach((n) => (soma += n));
+    return Number((soma / validas.length).toFixed(1));
+  }
+
+  const valores = [
+    mediaDoTrimestre("tri1"),
+    mediaDoTrimestre("tri2"),
+    mediaDoTrimestre("tri3")
+  ];
+
+  const roxo = corDoTema("--roxo", "#a259ff");
+  const azul = corDoTema("--azul-suave", "#7ec8ff");
+  const base = configuracaoComum();
+
+  if (graficoEvolucao) {
+    graficoEvolucao.destroy();
+  }
+
+  graficoEvolucao = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: ["1º Tri", "2º Tri", "3º Tri"],
+      datasets: [
+        {
+          label: "Média geral",
+          data: valores,
+          borderColor: azul,
+          backgroundColor: roxo,
+          pointBackgroundColor: roxo,
+          pointBorderColor: azul,
+          tension: 0.3,
+          fill: false,
+          spanGaps: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      color: base.color,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...base.plugins.tooltip,
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed.y;
+              return v === null || v === undefined
+                ? "Ainda não disponível"
+                : "Média: " + Number(v).toFixed(1).replace(".", ",");
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: base.scales.x.ticks.color },
+          grid: { color: base.scales.x.grid.color }
+        },
+        y: {
+          min: 0,
+          max: 10,
+          ticks: { color: base.scales.y.ticks.color },
+          grid: { color: base.scales.y.grid.color }
+        }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   GRÁFICO 3 — Faltas por trimestre (barras verticais)
+   + avaliação interna de risco (referência 350 — NÃO exibir)
+   ========================================================= */
+function atualizarGraficoFaltas() {
+  const canvas = document.getElementById("graficoFaltasTrimestres");
+  if (!canvas) return;
+
+  // Soma as faltas de cada trimestre entre todas as disciplinas.
+  // Usa SOMENTE o array de faltas. Não usa notas.
+  let faltasTri1 = 0;
+  let faltasTri2 = 0;
+  let faltasTri3 = 0;
+
+  dadosAtuais.forEach((d) => {
+    const f = obterFaltas(d);
+    faltasTri1 += f[0];
+    faltasTri2 += f[1];
+    faltasTri3 += f[2];
+  });

@@ -79,6 +79,38 @@
       </div>
     </section>
 
+    <!-- =====================================================
+         ÁREA DOS GRÁFICOS (NOVA)
+         Somente leitura dos dados já carregados.
+         Fica entre os cards e a tabela.
+         ===================================================== -->
+    <section class="area-graficos">
+
+      <article class="grafico-card">
+        <h2 class="grafico-titulo">Média por disciplina</h2>
+        <div class="grafico-container grafico-container-alto">
+          <canvas id="graficoMediasDisciplinas"></canvas>
+        </div>
+      </article>
+
+      <article class="grafico-card">
+        <h2 class="grafico-titulo">Evolução da média geral</h2>
+        <div class="grafico-container">
+          <canvas id="graficoEvolucaoTrimestres"></canvas>
+        </div>
+      </article>
+
+      <article class="grafico-card" id="card-faltas">
+        <h2 class="grafico-titulo">Faltas por trimestre</h2>
+        <!-- Badge "Perigo" só aparece quando a situação for crítica -->
+        <div id="estadoFaltas"></div>
+        <div class="grafico-container">
+          <canvas id="graficoFaltasTrimestres"></canvas>
+        </div>
+      </article>
+
+    </section>
+
     <!-- TABELA DE NOTAS -->
     <!-- As linhas serão criadas pelo JavaScript -->
     <section class="tabela-area">
@@ -101,6 +133,10 @@
     </section>
 
   </main>
+
+  <!-- Biblioteca de gráficos (Chart.js via CDN) -->
+  <!-- Deve vir ANTES do script.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Liga o HTML ao JavaScript -->
   <script src="script.js"></script>
