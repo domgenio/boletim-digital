@@ -442,3 +442,186 @@ body {
     height: 440px;
   }
 }
+
+/* =========================================================
+   NOVOS ESTILOS - TEMAS DE COR E FRASES GEEK
+   (acrescentados ao final, preservando todo o restante)
+   O tema muda só as cores de destaque. O fundo continua escuro.
+   ========================================================= */
+
+/* Cores em formato RGB, para as partes translúcidas acompanharem o tema */
+:root {
+  --destaque-rgb: 162, 89, 255;  /* roxo */
+  --apoio-rgb: 126, 200, 255;    /* azul suave */
+}
+
+/* ----- TEMA AZUL (apoio: ciano claro) ----- */
+:root[data-tema="azul"] {
+  --roxo: #3b82f6;
+  --azul-suave: #67e8f9;
+  --destaque-rgb: 59, 130, 246;
+  --apoio-rgb: 103, 232, 249;
+}
+
+/* ----- TEMA AMARELO (apoio: laranja) ----- */
+:root[data-tema="amarelo"] {
+  --roxo: #facc15;
+  --azul-suave: #fb923c;
+  --destaque-rgb: 250, 204, 21;
+  --apoio-rgb: 251, 146, 60;
+}
+
+/* ----- TEMA VERMELHO (apoio: rosa) ----- */
+:root[data-tema="vermelho"] {
+  --roxo: #ef4444;
+  --azul-suave: #f472b6;
+  --destaque-rgb: 239, 68, 68;
+  --apoio-rgb: 244, 114, 182;
+}
+
+/* Partes do visual que tinham a cor roxa/azul escrita direto no código */
+body {
+  background-image:
+    radial-gradient(circle at top left, rgba(var(--destaque-rgb), 0.15), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(var(--apoio-rgb), 0.1), transparent 40%);
+  transition: background-color 0.3s ease;
+}
+
+.tabela-boletim thead {
+  background-color: rgba(var(--destaque-rgb), 0.25);
+}
+
+.botao {
+  background: rgba(var(--destaque-rgb), 0.15);
+}
+
+.botao:hover {
+  background: rgba(var(--destaque-rgb), 0.3);
+}
+
+.botao-salvar {
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.botao-salvar:hover {
+  background: rgba(74, 222, 128, 0.3);
+}
+
+/* Os gráficos também ganham o brilho da cor do tema ao passar o mouse */
+.grafico-card:hover {
+  border-color: var(--roxo);
+}
+
+/* ====== SELETOR DE TEMA (4 BOLINHAS) ====== */
+.seletor-tema {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--borda-card);
+  border-radius: 999px;
+  background: var(--fundo-card);
+}
+
+.seletor-tema-rotulo {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bolinha-tema {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Cada bolinha mostra a cor principal e a cor de apoio do tema */
+.bolinha-roxo {
+  background: linear-gradient(135deg, #a259ff 50%, #7ec8ff 50%);
+}
+
+.bolinha-azul {
+  background: linear-gradient(135deg, #3b82f6 50%, #67e8f9 50%);
+}
+
+.bolinha-amarelo {
+  background: linear-gradient(135deg, #facc15 50%, #fb923c 50%);
+}
+
+.bolinha-vermelho {
+  background: linear-gradient(135deg, #ef4444 50%, #f472b6 50%);
+}
+
+.bolinha-tema:hover {
+  transform: scale(1.15);
+}
+
+/* A bolinha do tema ativo fica destacada */
+.bolinha-tema.ativa {
+  border-color: var(--texto-claro);
+  box-shadow: 0 0 0 3px rgba(var(--destaque-rgb), 0.45);
+  transform: scale(1.15);
+}
+
+.bolinha-tema:focus-visible {
+  outline: 2px solid var(--texto-claro);
+  outline-offset: 2px;
+}
+
+/* ====== FRASES GEEK NA TABELA ====== */
+/* Linhas com frase mostram o cursor de "dica" */
+.tabela-boletim tbody tr.linha-geek {
+  cursor: help;
+}
+
+/* A frase fica escondida e aparece ao passar o mouse ou tocar na linha */
+.frase-geek {
+  display: none;
+  width: 240px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--roxo);
+  border-radius: 8px;
+  background: rgba(var(--destaque-rgb), 0.15);
+  color: var(--azul-suave);
+  font-size: 0.8rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.tabela-boletim tbody tr.linha-geek:hover .frase-geek,
+.tabela-boletim tbody tr.linha-geek.linha-aberta .frase-geek {
+  display: block;
+  animation: aparecer-frase 0.25s ease;
+}
+
+@keyframes aparecer-frase {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* No celular o seletor ocupa a linha inteira, sem estourar a tela */
+@media (max-width: 600px) {
+  .seletor-tema {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .frase-geek {
+    width: 200px;
+  }
+}

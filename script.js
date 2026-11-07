@@ -35,6 +35,27 @@ const MEDIA_MINIMA = 6.0;
 // Referência INTERNA de risco (não exibir na interface!)
 const REFERENCIA_FALTAS = 350;
 
+/* ---------- FRASES GEEK (uma para cada matéria) ---------- */
+const FRASES_GEEK = {
+  "Língua Portuguesa": "Crase é igual a Creeper: aparece onde você menos espera, mas dá pra desarmar 💥",
+  "Matemática": "Nível de dificuldade: Dark Souls. Mas todo boss tem um padrão 🧮",
+  "Ciências": "Seu experimento tem mais chance de dar certo que a poção do Snape 🧪",
+  "História": "Quem não estuda o passado repete a mesma fase em loop, tipo Dia da Marmota 🏰",
+  "Geografia": "Mapa desbloqueado! Agora é só não se perder fora do minimapa 🗺️",
+  "Língua Inglesa": "Speak, friend, and enter, como nas portas de Moria 🗝️",
+  "Arte": "Sua criatividade tem mais cores que um bloco de lã no Minecraft 🎨",
+  "Educação Física": "Barra de stamina cheia, vamos pro próximo round 🏃",
+  "Educação Digital": "Ctrl+S salva vidas, e também o seu trabalho 💾",
+  "Educação Financeira": "Moedas não caem em árvore, mas dá pra juntar rupees pra comprar o item certo 💰",
+  "Estudo Orientado": "O mentor aparece, entrega o mapa e agora a jornada é sua, jovem padawan 🧭",
+  "Redação e Leitura": "Cada parágrafo é um golpe combo: introdução, desenvolvimento e finalização ✍️",
+  "Pensamento Lógico": "Puzzle de Zelda: a solução sempre estava na sala, só faltava olhar de outro jeito 🧩",
+  "Literatura Arte e Movimento": "Toda grande saga começou com uma boa história, e a sua está no capítulo atual 📚",
+  "Práticas Experimentais": "Modo laboratório ativado: errar faz parte do tutorial 🔬"
+};
+
+const FRASE_GEEK_PADRAO = "Missão secundária desbloqueada: dominar esta matéria! 🎮";
+
 /* =========================================================
    normalizarNota(valor)
    ========================================================= */
@@ -117,6 +138,17 @@ function classeSituacao(situacao) {
 }
 
 /* =========================================================
+   fraseGeek(nomeDisciplina)
+   Devolve a frase geek da matéria (ou a frase padrão).
+   ========================================================= */
+function fraseGeek(nomeDisciplina) {
+  if (Object.prototype.hasOwnProperty.call(FRASES_GEEK, nomeDisciplina)) {
+    return FRASES_GEEK[nomeDisciplina];
+  }
+  return FRASE_GEEK_PADRAO;
+}
+
+/* =========================================================
    ESTADO DA PÁGINA
    ========================================================= */
 let dadosAtuais = [];
@@ -136,6 +168,7 @@ const areaBoletim = document.getElementById("area-boletim");
 const botaoEditar = document.getElementById("botao-editar");
 const botaoSalvar = document.getElementById("botao-salvar");
 const mensagemEdicao = document.getElementById("mensagem-edicao");
+const bolinhasTema = document.querySelectorAll(".bolinha-tema");
 
 document.getElementById("acesso-turma").textContent = CONFIG_ALUNO.turma;
 document.getElementById("acesso-chamada").textContent = CONFIG_ALUNO.numeroChamada;
@@ -253,6 +286,20 @@ function desenharTabela(resultados) {
 
     const tdDisciplina = document.createElement("td");
     tdDisciplina.textContent = r.disciplina;
+
+    // Frase geek: aparece ao passar o mouse ou tocar na linha (fora do modo de edição)
+    if (!modoEdicao) {
+      const frase = document.createElement("div");
+      frase.className = "frase-geek";
+      frase.textContent = fraseGeek(r.disciplina);
+      tdDisciplina.appendChild(frase);
+
+      linha.classList.add("linha-geek");
+      linha.addEventListener("click", () => {
+        linha.classList.toggle("linha-aberta");
+      });
+    }
+
     linha.appendChild(tdDisciplina);
 
     const notas = [r.tri1, r.tri2, r.tri3];
@@ -548,6 +595,41 @@ async function salvarAlteracoes() {
     botaoEditar.disabled = false;
   }
 }
+
+/* =========================================================
+   TEMAS DE COR
+   O tema fica só em memória: ao abrir a página, volta ao roxo.
+   ========================================================= */
+const TEMAS_VALIDOS = ["roxo", "azul", "amarelo", "vermelho"];
+
+function aplicarTema(nome) {
+  if (!TEMAS_VALIDOS.includes(nome)) {
+    return;
+  }
+
+  // O roxo é o tema padrão (sem atributo). Os outros usam data-tema.
+  if (nome === "roxo") {
+    document.documentElement.removeAttribute("data-tema");
+  } else {
+    document.documentElement.setAttribute("data-tema", nome);
+  }
+
+  // Destaca a bolinha escolhida
+  bolinhasTema.forEach((bolinha) => {
+    const ativa = bolinha.getAttribute("data-tema") === nome;
+    bolinha.classList.toggle("ativa", ativa);
+    bolinha.setAttribute("aria-pressed", ativa ? "true" : "false");
+  });
+
+  // Os gráficos leem as cores ao serem criados, então precisam ser refeitos
+  atualizarGraficos();
+}
+
+bolinhasTema.forEach((bolinha) => {
+  bolinha.addEventListener("click", () => {
+    aplicarTema(bolinha.getAttribute("data-tema"));
+  });
+});
 
 /* =========================================================
    EVENTOS

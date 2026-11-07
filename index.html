@@ -37,10 +37,19 @@
   <!-- O boletim fica escondido até o login ser feito -->
   <main class="conteudo" id="area-boletim" hidden>
 
-    <!-- BOTÕES DE EDIÇÃO -->
+    <!-- BOTÕES DE EDIÇÃO E SELETOR DE TEMA -->
     <div class="barra-acoes">
       <button type="button" id="botao-editar" class="botao">Alterar dados</button>
       <button type="button" id="botao-salvar" class="botao botao-salvar" hidden>Salvar alterações</button>
+
+      <!-- SELETOR DE TEMA (NOVO): 4 bolinhas, cada uma com a cor principal e a cor de apoio -->
+      <div class="seletor-tema" role="group" aria-label="Escolher cor do tema">
+        <span class="seletor-tema-rotulo">Tema</span>
+        <button type="button" class="bolinha-tema bolinha-roxo ativa" data-tema="roxo" title="Roxo" aria-label="Tema roxo" aria-pressed="true"></button>
+        <button type="button" class="bolinha-tema bolinha-azul" data-tema="azul" title="Azul" aria-label="Tema azul" aria-pressed="false"></button>
+        <button type="button" class="bolinha-tema bolinha-amarelo" data-tema="amarelo" title="Amarelo" aria-label="Tema amarelo" aria-pressed="false"></button>
+        <button type="button" class="bolinha-tema bolinha-vermelho" data-tema="vermelho" title="Vermelho" aria-label="Tema vermelho" aria-pressed="false"></button>
+      </div>
     </div>
     <p class="mensagem" id="mensagem-edicao" role="status" aria-live="polite"></p>
 
@@ -80,7 +89,7 @@
     </section>
 
     <!-- =====================================================
-         ÁREA DOS GRÁFICOS (NOVA)
+         ÁREA DOS GRÁFICOS
          Somente leitura dos dados já carregados.
          Fica entre os cards e a tabela.
          ===================================================== -->
