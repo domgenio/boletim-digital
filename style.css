@@ -625,3 +625,625 @@ body {
     width: 200px;
   }
 }
+
+/* =========================================================
+   NOVOS ESTILOS - LOJA DE PODERES
+   (acrescentados ao final, preservando todo o restante)
+   Usam as mesmas variáveis, então acompanham os 4 temas.
+   ========================================================= */
+
+/* ====== BOTÃO DA LOJA (na barra de ações) ====== */
+.botao-loja {
+  border-color: var(--azul-suave);
+  background: rgba(var(--apoio-rgb), 0.15);
+}
+
+.botao-loja:hover {
+  background: rgba(var(--apoio-rgb), 0.3);
+}
+
+/* ====== TOPO DA LOJA: voltar + saldo ====== */
+.loja-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.loja-topo .botao {
+  margin-top: 0;
+}
+
+.loja-saldo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border: 1px solid var(--borda-card);
+  border-radius: 999px;
+  background: var(--fundo-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.loja-saldo-rotulo {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loja-saldo-valor {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--atencao);
+}
+
+.loja-titulo {
+  font-size: 1.6rem;
+  color: var(--roxo);
+  margin-bottom: 6px;
+}
+
+.loja-explicacao {
+  font-size: 0.95rem;
+  color: var(--texto-fraco);
+  margin-bottom: 12px;
+  max-width: 640px;
+  line-height: 1.4;
+}
+
+/* ====== LISTA DE PODERES ====== */
+.loja-poderes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ====== CARTÃO DE PODER (3 estados) ====== */
+.poder-card {
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.poder-card:hover {
+  transform: translateY(-3px);
+}
+
+.poder-icone {
+  font-size: 2rem;
+}
+
+.poder-materia {
+  font-size: 0.75rem;
+  color: var(--azul-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.poder-nome {
+  font-size: 1.1rem;
+  color: var(--texto-claro);
+  font-weight: 700;
+}
+
+.poder-descricao {
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.poder-preco {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--atencao);
+}
+
+.poder-card .botao {
+  margin-top: 4px;
+}
+
+/* Estado 1: sem pontos suficientes (bloqueado, cinza) */
+.poder-card.poder-bloqueado {
+  opacity: 0.55;
+}
+
+.poder-card.poder-bloqueado:hover {
+  transform: none;
+}
+
+.poder-card.poder-bloqueado .poder-icone {
+  filter: grayscale(1);
+}
+
+/* Estado 2: dá para comprar (destacado com a cor do tema) */
+.poder-card.poder-disponivel {
+  border-color: var(--roxo);
+  box-shadow: 0 0 0 1px rgba(var(--destaque-rgb), 0.3);
+}
+
+/* Estado 3: já comprado (verde) */
+.poder-card.poder-comprado {
+  border-color: var(--bom);
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.3);
+}
+
+.poder-card.poder-comprado .poder-preco {
+  color: var(--bom);
+}
+
+/* ====== TELA DO PODER ABERTO ====== */
+.poder-tela {
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  padding: 18px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.poder-tela-topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.poder-tela-topo .botao {
+  margin-top: 0;
+}
+
+.poder-tela-titulo {
+  font-size: 1.2rem;
+  color: var(--azul-suave);
+}
+
+.poder-palco {
+  min-height: 260px;
+}
+
+.poder-texto {
+  font-size: 0.9rem;
+  color: var(--texto-fraco);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+/* ====== PINCEL MÁGICO (Arte) ====== */
+.pincel-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.pincel-canvas {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1 / 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px dashed var(--borda-card);
+  border-radius: 16px;
+  cursor: crosshair;
+  touch-action: none; /* evita rolar a página enquanto desenha no celular */
+}
+
+.pincel-ferramentas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pincel-ferramentas .botao {
+  margin-top: 0;
+}
+
+.pincel-cor {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.pincel-cor:hover {
+  transform: scale(1.15);
+}
+
+.pincel-cor.ativa {
+  border-color: var(--texto-claro);
+  transform: scale(1.15);
+}
+
+/* ====== BICHINHOS QUE ANDAM PELA PÁGINA ====== */
+/* A camada cobre a tela toda, mas não bloqueia cliques no resto */
+.camada-bichos {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+}
+
+/* Cada bichinho aceita clique (para pular) */
+.bicho {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: left 0.12s linear, top 0.12s linear;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bicho canvas,
+.bicho img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.bicho.bicho-pulando {
+  animation: bicho-pulo 0.5s ease;
+}
+
+@keyframes bicho-pulo {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-40px) scale(1.1, 0.9); }
+  70%  { transform: translateY(0) scale(0.9, 1.1); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* ====== MAPA DO TESOURO (Geografia) ====== */
+.mapa {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(var(--apoio-rgb), 0.12), transparent 50%),
+    rgba(0, 0, 0, 0.25);
+}
+
+.mapa-ilha {
+  position: relative;
+  padding: 12px;
+  border: 2px solid var(--borda-card);
+  border-radius: 14px;
+  background: var(--fundo-card);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.mapa-ilha-icone {
+  font-size: 1.6rem;
+}
+
+.mapa-ilha-nome {
+  font-weight: 700;
+  color: var(--texto-claro);
+}
+
+.mapa-ilha-info {
+  color: var(--texto-fraco);
+}
+
+/* Ilhas já conquistadas (caminho livre) */
+.mapa-ilha.ilha-ok {
+  border-color: var(--bom);
+}
+
+/* Ilhas com obstáculo (matéria em atenção) */
+.mapa-ilha.ilha-atencao {
+  border-color: var(--atencao);
+  border-style: dashed;
+}
+
+/* Ilha sem nota ainda */
+.mapa-ilha.ilha-neutra {
+  border-color: var(--neutro);
+  opacity: 0.75;
+}
+
+/* Ilha final: o tesouro da média 7 */
+.mapa-ilha.ilha-meta {
+  border-color: var(--roxo);
+  box-shadow: 0 0 0 2px rgba(var(--destaque-rgb), 0.4);
+  animation: brilho-meta 2s ease-in-out infinite;
+}
+
+@keyframes brilho-meta {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(var(--destaque-rgb), 0.25); }
+  50%      { box-shadow: 0 0 14px 4px rgba(var(--destaque-rgb), 0.55); }
+}
+
+.mapa-passo {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--roxo);
+  color: var(--fundo-escuro);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mapa-legenda {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  line-height: 1.5;
+}
+
+/* ====== CALCULADORA DE BOSS (Matemática) ====== */
+.boss-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.boss-card {
+  padding: 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.boss-nome {
+  font-weight: 700;
+  color: var(--texto-claro);
+  font-size: 0.95rem;
+}
+
+.boss-barra {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.boss-vida {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  transition: width 0.6s ease;
+}
+
+.boss-info {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  line-height: 1.4;
+}
+
+/* Boss já derrotado (média 7 ou mais) */
+.boss-card.boss-derrotado {
+  border-color: var(--bom);
+  opacity: 0.8;
+}
+
+.boss-card.boss-derrotado .boss-vida {
+  width: 0;
+}
+
+/* ====== CORRIDA (Educação Física) ====== */
+.corrida-pista {
+  position: relative;
+  height: 90px;
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0,
+      rgba(255, 255, 255, 0.05) 2px,
+      transparent 2px,
+      transparent 10%
+    ),
+    rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.corrida-corredor {
+  position: absolute;
+  top: 50%;
+  left: 2%;
+  font-size: 2.2rem;
+  transform: translateY(-50%);
+  transition: left 2.5s ease-out;
+}
+
+.corrida-chegada {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      #f1f1f7 0,
+      #f1f1f7 10px,
+      #12121c 10px,
+      #12121c 20px
+    );
+}
+
+.corrida-resultado {
+  font-size: 0.95rem;
+  color: var(--azul-suave);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* ====== LABORATÓRIO DE POÇÕES (Práticas Experimentais) ====== */
+.lab-bancada {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.lab-pocao {
+  width: 120px;
+  padding: 14px 10px;
+  border: 1px solid var(--borda-card);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--texto-claro);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.lab-pocao:hover {
+  transform: translateY(-3px);
+  border-color: var(--roxo);
+}
+
+.lab-pocao.ativa {
+  border-color: var(--bom);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35);
+}
+
+.lab-pocao-icone {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 6px;
+}
+
+/* Partículas que caem ou sobem pela página (criadas pelo script.js) */
+.particula {
+  position: fixed;
+  top: -40px;
+  pointer-events: none;
+  z-index: 40;
+  font-size: 1.4rem;
+  opacity: 0.8;
+  animation: particula-cair 6s linear forwards;
+}
+
+.particula.particula-subir {
+  top: auto;
+  bottom: -40px;
+  animation-name: particula-subir;
+}
+
+@keyframes particula-cair {
+  from { transform: translateY(0) rotate(0deg); }
+  to   { transform: translateY(110vh) rotate(360deg); }
+}
+
+@keyframes particula-subir {
+  from { transform: translateY(0) scale(0.6); opacity: 0.9; }
+  to   { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+}
+
+/* Efeito "aurora" aplicado no body pela poção */
+body.efeito-aurora {
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(74, 222, 128, 0.25), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(var(--destaque-rgb), 0.3), transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(var(--apoio-rgb), 0.25), transparent 45%);
+}
+
+/* ====== CONFETE (Corrida e outras comemorações) ====== */
+.confete {
+  position: fixed;
+  top: -20px;
+  width: 10px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 60;
+  animation: confete-cair 3s ease-in forwards;
+}
+
+@keyframes confete-cair {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateY(105vh) rotate(720deg); opacity: 0.8; }
+}
+
+/* ====== LOJA NO CELULAR ====== */
+@media (max-width: 600px) {
+  .loja-poderes {
+    grid-template-columns: 1fr;
+  }
+
+  .loja-topo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .loja-saldo {
+    justify-content: center;
+  }
+
+  .botao-loja {
+    width: 100%;
+  }
+
+  .pincel-canvas {
+    max-width: 100%;
+  }
+
+  .bicho {
+    width: 56px;
+    height: 56px;
+  }
+
+  .lab-pocao {
+    width: calc(50% - 7px);
+  }
+}
+
+/* Respeita quem prefere menos animação */
+@media (prefers-reduced-motion: reduce) {
+  .particula,
+  .confete,
+  .bicho.bicho-pulando,
+  .mapa-ilha.ilha-meta {
+    animation: none;
+  }
+
+  .corrida-corredor,
+  .boss-vida {
+    transition: none;
+  }
+}

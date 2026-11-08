@@ -37,12 +37,15 @@
   <!-- O boletim fica escondido até o login ser feito -->
   <main class="conteudo" id="area-boletim" hidden>
 
-    <!-- BOTÕES DE EDIÇÃO E SELETOR DE TEMA -->
+    <!-- BOTÕES DE EDIÇÃO, LOJA E SELETOR DE TEMA -->
     <div class="barra-acoes">
       <button type="button" id="botao-editar" class="botao">Alterar dados</button>
       <button type="button" id="botao-salvar" class="botao botao-salvar" hidden>Salvar alterações</button>
 
-      <!-- SELETOR DE TEMA (NOVO): 4 bolinhas, cada uma com a cor principal e a cor de apoio -->
+      <!-- NOVO: botão que abre a Loja de Poderes (mostra o saldo de pontos) -->
+      <button type="button" id="botao-loja" class="botao botao-loja">🎮 Loja · <span id="loja-pontos-botao">0</span> pts</button>
+
+      <!-- SELETOR DE TEMA: 4 bolinhas, cada uma com a cor principal e a cor de apoio -->
       <div class="seletor-tema" role="group" aria-label="Escolher cor do tema">
         <span class="seletor-tema-rotulo">Tema</span>
         <button type="button" class="bolinha-tema bolinha-roxo ativa" data-tema="roxo" title="Roxo" aria-label="Tema roxo" aria-pressed="true"></button>
@@ -142,6 +145,47 @@
     </section>
 
   </main>
+
+  <!-- =====================================================
+       NOVO: LOJA DE PODERES
+       Fica escondida até o aluno clicar em "Loja".
+       É uma "página" dentro do mesmo arquivo, assim o PIN
+       continua só em memória (a página não recarrega).
+       Os cartões e as telas dos poderes são criados pelo script.js.
+       ===================================================== -->
+  <main class="conteudo loja" id="area-loja" hidden>
+
+    <div class="loja-topo">
+      <button type="button" id="botao-voltar-boletim" class="botao">← Voltar ao boletim</button>
+      <div class="loja-saldo" aria-live="polite">
+        <span class="loja-saldo-rotulo">Seus pontos</span>
+        <span class="loja-saldo-valor" id="loja-saldo">0</span>
+      </div>
+    </div>
+
+    <h2 class="loja-titulo">Loja de Poderes</h2>
+    <p class="loja-explicacao">
+      Tire boas notas para ganhar pontos e compre poderes. Os poderes são só diversão e nunca mudam suas notas reais.
+    </p>
+    <p class="mensagem" id="mensagem-loja" role="status" aria-live="polite"></p>
+
+    <!-- Lista dos poderes (cartões criados pelo script.js) -->
+    <section class="loja-poderes" id="loja-poderes"></section>
+
+    <!-- Tela do poder aberto (fica escondida até o aluno usar um poder comprado) -->
+    <section class="poder-tela" id="poder-tela" hidden>
+      <div class="poder-tela-topo">
+        <button type="button" id="botao-voltar-loja" class="botao">← Voltar à loja</button>
+        <h3 class="poder-tela-titulo" id="poder-titulo"></h3>
+      </div>
+      <!-- Aqui o script.js monta o conteúdo de cada poder -->
+      <div class="poder-palco" id="poder-palco"></div>
+    </section>
+
+  </main>
+
+  <!-- NOVO: camada fixa onde os bichinhos do Pincel Mágico andam pela página -->
+  <div class="camada-bichos" id="camada-bichos" aria-hidden="true"></div>
 
   <!-- Biblioteca de gráficos (Chart.js via CDN) -->
   <!-- Deve vir ANTES do script.js -->
