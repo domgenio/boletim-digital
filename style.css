@@ -1247,3 +1247,477 @@ body.efeito-aurora {
     transition: none;
   }
 }
+
+/* =========================================================
+   NOVOS ESTILOS - LOTE 2 DE PODERES
+   Máquina de Letras, Terrário Vivo, Máquina do Tempo,
+   Modo Player 2 e Terminal Hacker.
+   (acrescentados ao final, preservando todo o restante)
+   ========================================================= */
+
+/* ====== MÁQUINA DE LETRAS (Língua Portuguesa) ====== */
+.letras-hud {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.letras-hud-item {
+  padding: 6px 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 999px;
+  background: var(--fundo-card);
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}
+
+.letras-hud-item strong {
+  margin-left: 6px;
+  font-size: 1.1rem;
+  color: var(--atencao);
+}
+
+/* Área onde as palavras caem */
+.letras-arena {
+  position: relative;
+  height: 320px;
+  margin-bottom: 12px;
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--destaque-rgb), 0.18), transparent 60%),
+    rgba(0, 0, 0, 0.3);
+}
+
+.letras-palavra {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--roxo);
+  border-radius: 999px;
+  background: rgba(var(--destaque-rgb), 0.25);
+  color: var(--texto-claro);
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Palavra que está sendo digitada agora */
+.letras-palavra.alvo {
+  border-color: var(--bom);
+  background: rgba(74, 222, 128, 0.25);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.5);
+}
+
+.letras-palavra.explodindo {
+  animation: letras-explodir 0.4s ease-out forwards;
+}
+
+@keyframes letras-explodir {
+  0%   { transform: scale(1); opacity: 1; }
+  60%  { transform: scale(1.6); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.letras-campo {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Tela de fim de jogo (fica sobre a arena) */
+.letras-fim {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(18, 18, 28, 0.88);
+  text-align: center;
+}
+
+.letras-fim-titulo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--roxo);
+}
+
+.letras-fim-texto {
+  font-size: 0.95rem;
+  color: var(--texto-fraco);
+  line-height: 1.4;
+}
+
+.letras-fim .botao {
+  margin-top: 6px;
+}
+
+/* ====== TERRÁRIO VIVO (Ciências) ====== */
+.terrario {
+  position: relative;
+  height: 340px;
+  margin-bottom: 12px;
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--apoio-rgb), 0.12) 0%,
+      rgba(74, 222, 128, 0.1) 70%,
+      rgba(139, 92, 46, 0.35) 100%
+    ),
+    rgba(0, 0, 0, 0.25);
+}
+
+.terrario-ser {
+  position: absolute;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: terrario-passear var(--duracao, 12s) ease-in-out infinite alternate;
+}
+
+.terrario-ser:hover,
+.terrario-ser.terrario-escolhido {
+  filter: drop-shadow(0 0 8px rgba(var(--destaque-rgb), 0.9));
+}
+
+/* Plantas ficam no chão e balançam */
+.terrario-ser.terrario-planta {
+  transform-origin: bottom center;
+  animation: terrario-balancar 3s ease-in-out infinite alternate;
+}
+
+/* Ovos ficam parados, só tremem um pouquinho */
+.terrario-ser.terrario-ovo {
+  animation: terrario-tremer 2.5s ease-in-out infinite;
+}
+
+@keyframes terrario-passear {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(var(--dx, 60px), var(--dy, -20px)); }
+}
+
+@keyframes terrario-balancar {
+  from { transform: rotate(-6deg); }
+  to   { transform: rotate(6deg); }
+}
+
+@keyframes terrario-tremer {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-8deg); }
+  75%      { transform: rotate(8deg); }
+}
+
+.terrario-info {
+  min-height: 1.4em;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--azul-suave);
+}
+
+.terrario-legenda {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  line-height: 1.5;
+}
+
+/* ====== MÁQUINA DO TEMPO (História) ====== */
+.tempo-linha {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 56px;
+  margin-bottom: 14px;
+}
+
+.tempo-trilho {
+  position: absolute;
+  top: 28px;
+  left: 16.66%;
+  right: 16.66%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.tempo-progresso {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--roxo), var(--azul-suave));
+  transition: width 1.2s ease;
+}
+
+.tempo-viajante {
+  position: absolute;
+  top: 8px;
+  left: 16.66%;
+  font-size: 1.8rem;
+  line-height: 1;
+  transform: translateX(-50%);
+  transition: left 1.2s ease;
+}
+
+.tempo-parada {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 14px;
+  background: var(--fundo-card);
+  opacity: 0.25;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.5s ease;
+}
+
+.tempo-parada.visivel {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--roxo);
+}
+
+.tempo-era {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--azul-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tempo-personagem {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.tempo-nota {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--azul-suave);
+}
+
+.tempo-fala {
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--texto-fraco);
+}
+
+/* ====== MODO PLAYER 2 (Língua Inglesa) ====== */
+.player2-cena {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.player2-personagem {
+  font-size: 4rem;
+  line-height: 1;
+  animation: player2-flutuar 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes player2-flutuar {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-8px); }
+}
+
+.player2-balao {
+  flex: 1;
+  min-width: 220px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 2px solid var(--roxo);
+  border-radius: 16px;
+  background: rgba(var(--destaque-rgb), 0.12);
+}
+
+.player2-fala {
+  min-height: 3em;
+  font-family: "Courier New", monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--texto-claro);
+}
+
+.player2-fala.player2-digitando::after {
+  content: "▋";
+  margin-left: 2px;
+  animation: player2-piscar 0.8s steps(1) infinite;
+}
+
+@keyframes player2-piscar {
+  0%, 50%   { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.player2-legenda {
+  min-height: 1.3em;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--azul-suave);
+}
+
+.player2-botoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.player2-botoes .botao {
+  margin-top: 0;
+}
+
+/* ====== TERMINAL HACKER (Educação Digital) ====== */
+.terminal {
+  padding: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 12px;
+  background: #0b0f14;
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #4ade80;
+}
+
+.terminal-saida {
+  height: 280px;
+  margin-bottom: 8px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-linha {
+  line-height: 1.5;
+}
+
+.terminal-linha.terminal-usuario {
+  color: #f1f1f7;
+}
+
+.terminal-linha.terminal-erro {
+  color: #ff7b7b;
+}
+
+.terminal-linha.terminal-destaque {
+  color: var(--atencao);
+}
+
+.terminal-entrada-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(74, 222, 128, 0.3);
+}
+
+.terminal-prompt {
+  white-space: nowrap;
+  color: #4ade80;
+}
+
+.terminal-entrada {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #f1f1f7;
+  font-family: inherit;
+  font-size: 1rem; /* 16px evita o zoom automático no celular */
+  caret-color: #4ade80;
+}
+
+.terminal-atalhos {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.terminal-atalho {
+  padding: 4px 10px;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 8px;
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.terminal-atalho:hover {
+  background: rgba(74, 222, 128, 0.25);
+}
+
+/* ====== LOTE 2 NO CELULAR ====== */
+@media (max-width: 700px) {
+  /* Máquina do Tempo: uma parada embaixo da outra, sem trilho */
+  .tempo-linha {
+    grid-template-columns: 1fr;
+    padding-top: 0;
+  }
+
+  .tempo-trilho,
+  .tempo-viajante {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .letras-arena {
+    height: 280px;
+  }
+
+  .terrario {
+    height: 300px;
+  }
+
+  .player2-personagem {
+    font-size: 3rem;
+  }
+
+  .terminal-saida {
+    height: 240px;
+  }
+}
+
+/* Respeita quem prefere menos animação (lote 2) */
+@media (prefers-reduced-motion: reduce) {
+  .letras-palavra.explodindo,
+  .terrario-ser,
+  .terrario-ser.terrario-planta,
+  .terrario-ser.terrario-ovo,
+  .player2-personagem,
+  .player2-fala.player2-digitando::after {
+    animation: none;
+  }
+
+  .tempo-progresso,
+  .tempo-viajante,
+  .tempo-parada {
+    transition: none;
+  }
+}
