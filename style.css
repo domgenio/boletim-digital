@@ -1721,3 +1721,349 @@ body.efeito-aurora {
     transition: none;
   }
 }
+
+/* =========================================================
+   NOVOS ESTILOS - ÁREA "MEUS PODERES"
+   A área nova reaproveita as classes da loja (loja-topo,
+   loja-saldo, loja-titulo, loja-poderes, poder-card).
+   Só o botão novo da barra de ações precisa de estilo.
+   ========================================================= */
+
+/* Mesmo estilo do botão da loja: cor de apoio do tema */
+.botao-poderes {
+  border-color: var(--azul-suave);
+  background: rgba(var(--apoio-rgb), 0.15);
+}
+
+.botao-poderes:hover {
+  background: rgba(var(--apoio-rgb), 0.3);
+}
+
+/* =========================================================
+   NOVOS ESTILOS - FIM DE RODADA E BÔNUS DOS JOGOS
+   Tela comum aos 3 jogos novos (Expedição, Invasão e
+   Corrida de Obstáculos). Fica por cima da área do jogo e
+   mostra o resultado e, quando você vence, os pontos bônus.
+   ========================================================= */
+
+.jogo-fim {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(18, 18, 28, 0.9);
+  text-align: center;
+}
+
+/* O script.js liga esta classe para mostrar a tela */
+.jogo-fim.aberto {
+  display: flex;
+}
+
+.jogo-fim-titulo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--roxo);
+}
+
+.jogo-fim-texto {
+  font-size: 0.92rem;
+  color: var(--texto-fraco);
+  line-height: 1.45;
+}
+
+.jogo-fim .botao {
+  margin-top: 6px;
+}
+
+/* Selo dourado com os pontos de bônus ganhos */
+.jogo-bonus {
+  padding: 6px 16px;
+  border: 1px solid var(--atencao);
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--atencao);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+   NOVOS ESTILOS - EXPEDIÇÃO DO TESOURO (Geografia)
+   Você controla um barco e coleta baús nas ilhas.
+   Clique ou toque no mar: o barco navega até o ponto.
+   ========================================================= */
+
+.expedicao-hud {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.expedicao-hud-item {
+  padding: 6px 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 999px;
+  background: var(--fundo-card);
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}
+
+.expedicao-hud-item strong {
+  margin-left: 6px;
+  font-size: 1.1rem;
+  color: var(--atencao);
+}
+
+.expedicao-mar {
+  position: relative;
+  height: 420px;
+  margin-bottom: 12px;
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  overflow: hidden;
+  /* Toque no mar move o barco sem rolar a página */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(var(--apoio-rgb), 0.16), transparent 55%),
+    radial-gradient(circle at 75% 80%, rgba(var(--destaque-rgb), 0.12), transparent 50%),
+    rgba(10, 22, 44, 0.55);
+}
+
+.expedicao-ilha {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px;
+  border: 2px solid var(--borda-card);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.32);
+  font-size: 1.7rem;
+  transform: translate(-50%, -50%);
+}
+
+.expedicao-ilha.expedicao-ilha-coletada {
+  border-color: var(--bom);
+  opacity: 0.65;
+}
+
+.expedicao-ilha-rotulo {
+  max-width: 92px;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  color: var(--texto-fraco);
+  text-align: center;
+}
+
+/* Baú que fica no canto de cada ilha */
+.expedicao-bau {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 1.1rem;
+}
+
+/* Obstáculos do mar */
+.expedicao-redemoinho {
+  position: absolute;
+  font-size: 1.5rem;
+  transform: translate(-50%, -50%);
+  animation: expedicao-girar 3s linear infinite;
+}
+
+@keyframes expedicao-girar {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.expedicao-tempestade {
+  position: absolute;
+  font-size: 1.7rem;
+  transform: translate(-50%, -50%);
+  filter: saturate(0.7);
+}
+
+/* Tesouro final: cinza até a meta de moedas ser alcançada */
+.expedicao-meta {
+  position: absolute;
+  font-size: 2rem;
+  transform: translate(-50%, -50%);
+  filter: grayscale(1);
+  transition: filter 0.4s ease;
+}
+
+.expedicao-meta.expedicao-meta-aberta {
+  filter: none;
+  animation: brilho-meta 2s ease-in-out infinite;
+}
+
+.expedicao-barco {
+  position: absolute;
+  font-size: 2rem;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.expedicao-legenda {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  line-height: 1.5;
+}
+
+/* =========================================================
+   NOVOS ESTILOS - MISSÃO DE INVASÃO (Educação Digital)
+   Continua usando o terminal (.terminal e companhia, que já
+   existem). O que é novo: o cartão do objetivo da missão e a
+   barra de progresso das etapas.
+   ========================================================= */
+
+.invasao-objetivo {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px dashed rgba(74, 222, 128, 0.5);
+  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.07);
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #4ade80;
+}
+
+.invasao-objetivo strong {
+  color: #f1f1f7;
+}
+
+.invasao-progresso {
+  height: 10px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.invasao-barra {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4ade80, #67e8f9);
+  transition: width 0.5s ease;
+}
+
+/* =========================================================
+   NOVOS ESTILOS - CORRIDA DE OBSTÁCULOS (Educação Física)
+   O corredor avança sozinho e você pula as bolas de faltas.
+   Toque/clique na pista ou aperte espaço para pular.
+   (As classes antigas .corrida-pista etc. continuam no
+   arquivo, porque a Máquina do Tempo usa .corrida-resultado.)
+   ========================================================= */
+
+.corrida-hud {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.corrida-hud-item {
+  padding: 6px 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 999px;
+  background: var(--fundo-card);
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}
+
+.corrida-hud-item strong {
+  margin-left: 6px;
+  font-size: 1.1rem;
+  color: var(--atencao);
+}
+
+.corrida-jogo {
+  position: relative;
+  height: 280px;
+  margin-bottom: 10px;
+  border: 1px solid var(--borda-card);
+  border-radius: 16px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(var(--apoio-rgb), 0.1), rgba(var(--destaque-rgb), 0.06) 60%, rgba(0, 0, 0, 0.25) 100%),
+    linear-gradient(180deg, transparent 0, transparent 82%, rgba(255, 255, 255, 0.15) 82%, rgba(255, 255, 255, 0.15) 84%, transparent 84%),
+    rgba(0, 0, 0, 0.2);
+}
+
+.corrida-atleta {
+  position: absolute;
+  bottom: 16%;
+  left: 12%;
+  font-size: 2.4rem;
+  line-height: 1;
+  z-index: 2;
+}
+
+.corrida-obstaculo {
+  position: absolute;
+  bottom: 16%;
+  font-size: 1.6rem;
+  line-height: 1;
+  z-index: 2;
+}
+
+.corrida-aviso {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+/* =========================================================
+   NOVOS ESTILOS - CELULAR (jogos novos e botão)
+   ========================================================= */
+@media (max-width: 600px) {
+  .botao-poderes {
+    width: 100%;
+  }
+
+  .expedicao-mar {
+    height: 340px;
+  }
+
+  .expedicao-ilha {
+    font-size: 1.3rem;
+  }
+
+  .corrida-jogo {
+    height: 230px;
+  }
+
+  .corrida-atleta {
+    font-size: 2rem;
+  }
+}
+
+/* Respeita quem prefere menos animação (jogos novos) */
+@media (prefers-reduced-motion: reduce) {
+  .expedicao-redemoinho,
+  .expedicao-meta.expedicao-meta-aberta {
+    animation: none;
+  }
+
+  .invasao-barra {
+    transition: none;
+  }
+}

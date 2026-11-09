@@ -45,6 +45,9 @@
       <!-- NOVO: botão que abre a Loja de Poderes (mostra o saldo de pontos) -->
       <button type="button" id="botao-loja" class="botao botao-loja">🎮 Loja · <span id="loja-pontos-botao">0</span> pts</button>
 
+      <!-- NOVO: botão que abre "Meus Poderes" (mostra só os poderes já comprados) -->
+      <button type="button" id="botao-poderes" class="botao botao-poderes">🎒 Meus Poderes</button>
+
       <!-- SELETOR DE TEMA: 4 bolinhas, cada uma com a cor principal e a cor de apoio -->
       <div class="seletor-tema" role="group" aria-label="Escolher cor do tema">
         <span class="seletor-tema-rotulo">Tema</span>
@@ -147,11 +150,13 @@
   </main>
 
   <!-- =====================================================
-       NOVO: LOJA DE PODERES
+       LOJA DE PODERES
        Fica escondida até o aluno clicar em "Loja".
        É uma "página" dentro do mesmo arquivo, assim o PIN
        continua só em memória (a página não recarrega).
-       Os cartões e as telas dos poderes são criados pelo script.js.
+       Os cartões são criados pelo script.js.
+       NOVO: agora a Loja mostra SOMENTE poderes para comprar.
+       Os poderes comprados ficam na área "Meus Poderes".
        ===================================================== -->
   <main class="conteudo loja" id="area-loja" hidden>
 
@@ -169,20 +174,54 @@
     </p>
     <p class="mensagem" id="mensagem-loja" role="status" aria-live="polite"></p>
 
-    <!-- Lista dos poderes (cartões criados pelo script.js) -->
+    <!-- Lista dos poderes à venda (cartões criados pelo script.js) -->
     <section class="loja-poderes" id="loja-poderes"></section>
 
-    <!-- Tela do poder aberto (fica escondida até o aluno usar um poder comprado) -->
-    <section class="poder-tela" id="poder-tela" hidden>
-      <div class="poder-tela-topo">
-        <button type="button" id="botao-voltar-loja" class="botao">← Voltar à loja</button>
-        <h3 class="poder-tela-titulo" id="poder-titulo"></h3>
+  </main>
+
+  <!-- =====================================================
+       NOVO: MEUS PODERES
+       Segunda "página" interna do mesmo arquivo, para separar
+       COMPRAR (Loja) de USAR (aqui). Reaproveita as classes
+       da loja, então o visual e os 4 temas ficam iguais.
+       Os cartões são criados pelo script.js.
+       ===================================================== -->
+  <main class="conteudo poderes" id="area-poderes" hidden>
+
+    <div class="loja-topo">
+      <button type="button" id="botao-voltar-poderes" class="botao">← Voltar ao boletim</button>
+      <div class="loja-saldo" aria-live="polite">
+        <span class="loja-saldo-rotulo">Seus pontos</span>
+        <span class="loja-saldo-valor" id="poderes-saldo">0</span>
       </div>
-      <!-- Aqui o script.js monta o conteúdo de cada poder -->
-      <div class="poder-palco" id="poder-palco"></div>
-    </section>
+    </div>
+
+    <h2 class="loja-titulo">Meus Poderes</h2>
+    <p class="loja-explicacao">
+      Aqui ficam os poderes que você já comprou. Clique em “Usar” para abrir. Para comprar novos, volte ao boletim e use a Loja.
+    </p>
+    <p class="mensagem" id="mensagem-poderes" role="status" aria-live="polite"></p>
+
+    <!-- Lista dos poderes comprados (cartões criados pelo script.js) -->
+    <section class="loja-poderes" id="poderes-comprados"></section>
 
   </main>
+
+  <!-- =====================================================
+       MOVIDO: TELA DO PODER ABERTO
+       Antes ficava dentro da Loja. Agora é irmã das duas áreas
+       (Loja e Meus Poderes), porque um poder pode ser aberto
+       das duas. Os IDs continuam exatamente os mesmos, então
+       o script.js continua encontrando tudo.
+       ===================================================== -->
+  <section class="poder-tela" id="poder-tela" hidden>
+    <div class="poder-tela-topo">
+      <button type="button" id="botao-voltar-loja" class="botao">← Voltar à loja</button>
+      <h3 class="poder-tela-titulo" id="poder-titulo"></h3>
+    </div>
+    <!-- Aqui o script.js monta o conteúdo de cada poder -->
+    <div class="poder-palco" id="poder-palco"></div>
+  </section>
 
   <!-- NOVO: camada fixa onde os bichinhos do Pincel Mágico andam pela página -->
   <div class="camada-bichos" id="camada-bichos" aria-hidden="true"></div>

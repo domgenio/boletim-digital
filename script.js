@@ -158,7 +158,8 @@ let ocupado = false;
 let camposEdicao = [];
 
 /* Estado da loja (fica na API junto com as disciplinas) */
-let lojaAtual = { gasto: 0, poderes: [] };
+// NOVO: bonus = pontos extra ganhos nos jogos novos (teto de TETO_BONUS)
+let lojaAtual = { gasto: 0, bonus: 0, poderes: [] };
 // Só vira true quando os dados vieram da API ou foram salvos com sucesso.
 // Enquanto for false, a loja fica bloqueada (para não salvar dados fictícios sem o aluno pedir).
 let dadosVemDaApi = false;
@@ -189,6 +190,14 @@ const poderTitulo = document.getElementById("poder-titulo");
 const poderPalco = document.getElementById("poder-palco");
 const botaoVoltarLoja = document.getElementById("botao-voltar-loja");
 const camadaBichos = document.getElementById("camada-bichos");
+
+/* NOVO: elementos da área "Meus Poderes" */
+const botaoPoderes = document.getElementById("botao-poderes");
+const areaPoderes = document.getElementById("area-poderes");
+const botaoVoltarPoderes = document.getElementById("botao-voltar-poderes");
+const poderesSaldo = document.getElementById("poderes-saldo");
+const mensagemPoderes = document.getElementById("mensagem-poderes");
+const poderesComprados = document.getElementById("poderes-comprados");
 
 document.getElementById("acesso-turma").textContent = CONFIG_ALUNO.turma;
 document.getElementById("acesso-chamada").textContent = CONFIG_ALUNO.numeroChamada;
@@ -424,7 +433,7 @@ function renderizar() {
   desenharTabela(resultados);
   atualizarCards(resultados);
   atualizarGraficos(); // atualiza os gráficos (somente leitura)
-  atualizarLoja();     // atualiza pontos e cartões da loja
+  atualizarLoja();     // atualiza pontos e cartões da loja e dos meus poderes
 }
 
 /* =========================================================
@@ -544,7 +553,7 @@ async function abrirBoletim(evento) {
       dadosVemDaApi = true;
     } else {
       dadosAtuais = JSON.parse(JSON.stringify(disciplinas));
-      lojaAtual = { gasto: 0, poderes: [] };
+      lojaAtual = { gasto: 0, bonus: 0, poderes: [] }; // NOVO: bonus entra no padrão
       dadosVemDaApi = false; // loja bloqueada até salvar
     }
 
@@ -555,6 +564,7 @@ async function abrirBoletim(evento) {
     areaAcesso.hidden = true;
     areaBoletim.hidden = false;
     areaLoja.hidden = true;
+    areaPoderes.hidden = true; // NOVO: garante a área nova fechada também
 
     modoEdicao = false;
     botaoEditar.textContent = "Alterar dados";
@@ -980,12 +990,27 @@ function atualizarGraficos() {
    LOJA DE PODERES
    Os poderes são só diversão: nunca mudam as notas reais.
    Os pontos são calculados a partir das notas. A API guarda apenas
-   quanto foi gasto e quais poderes foram comprados (dados.loja).
+   quanto foi gasto, o bônus ganho nos jogos e quais poderes foram
+   comprados (dados.loja).
    =========================================================================
    ========================================================================= */
 
 /* ---------- CONSTANTES DA LOJA ---------- */
-const ALVO_TESOURO = 7.0; // média que serve de "tesouro" no mapa, no boss e na corrida
+const ALVO_TESOURO = 7.0; // média usada como "meta" no boss e nos jogos novos
+
+// NOVO: teto do bônus acumulado nos jogos e o multiplicador de cada um.
+// Bônus = média geral × 10 × multiplicador (arredondado).
+// Expedição é mais longa e paga 1,5x; Invasão e Corrida pagam 1x.
+const TETO_BONUS = 500;
+const BONUS_EXPEDICAO = 1.5;
+const BONUS_PADRAO = 1.0;
+
+function bonusDaMedia(mediaGeral, multiplicador) {
+  if (mediaGeral === null) {
+    return 0;
+  }
+  return Math.round(mediaGeral * 10 * multiplicador);
+}
 
 const PODERES = [
   {
@@ -996,13 +1021,14 @@ const PODERES = [
     preco: 150,
     descricao: "Desenhe um bichinho e veja ele ganhar vida e andar pela página. Clique nele para pular!"
   },
+  /* NOVO: Geografia virou um jogo de verdade (antes era só olhar o mapa) */
   {
     id: "geografia",
-    icone: "🗺️",
+    icone: "⛵",
     materia: "Geografia",
-    nome: "Mapa do Tesouro",
-    preco: 150,
-    descricao: "Um mapa com uma ilha para cada matéria mostra o caminho até a média 7."
+    nome: "Expedição do Tesouro",
+    preco: 180,
+    descricao: "Navegue com o barco, colete baús nas ilhas das matérias e desvie dos redemoinhos. Juntou as moedas? O tesouro abre e dá bônus!"
   },
   {
     id: "matematica",
@@ -1012,13 +1038,14 @@ const PODERES = [
     preco: 120,
     descricao: "Cada matéria vira um chefe. Simule uma nota e veja a vida dele cair."
   },
+  /* NOVO: Educação Física virou um runner (antes era só assistir o corredor) */
   {
     id: "educacao-fisica",
     icone: "🏃",
     materia: "Educação Física",
-    nome: "Corrida",
-    preco: 100,
-    descricao: "Seu corredor avança na pista conforme a sua média geral. Chegou na meta? Tem confete!"
+    nome: "Corrida de Obstáculos",
+    preco: 130,
+    descricao: "Pule as bolas de faltas e aguentе 1 minuto na pista. Sua média geral dá vidas extras!"
   },
   {
     id: "experimentais",
@@ -1028,7 +1055,6 @@ const PODERES = [
     preco: 150,
     descricao: "Misture poções que enchem a página de átomos, bolhas, neve de cristais ou aurora."
   },
-  /* ----- NOVO: LOTE 2 ----- */
   {
     id: "portugues",
     icone: "🔤",
@@ -1061,13 +1087,14 @@ const PODERES = [
     preco: 110,
     descricao: "Um robô narra o seu boletim em inglês, com legenda em português."
   },
+  /* NOVO: Educação Digital ganhou uma missão com história (o terminal continua!) */
   {
     id: "digital",
     icone: "💻",
     materia: "Educação Digital",
-    nome: "Terminal Hacker",
-    preco: 100,
-    descricao: "Um terminal retrô onde você digita comandos e ele responde com os seus dados."
+    nome: "Missão de Invasão",
+    preco: 130,
+    descricao: "Comandos de hacker (de mentirinha) para invadir o servidor e recuperar o arquivo de notas. Venceu? Bônus!"
   }
 ];
 
@@ -1091,17 +1118,25 @@ function semAcento(texto) {
 
 /* =========================================================
    normalizarLoja(bruta)
-   Valida o que veio da API: só aceita poderes conhecidos
-   e um gasto inteiro maior ou igual a zero.
+   Valida o que veio da API: só aceita poderes conhecidos,
+   um gasto inteiro maior ou igual a zero e, NOVO, um bônus
+   inteiro entre 0 e o teto.
    ========================================================= */
 function normalizarLoja(bruta) {
-  const padrao = { gasto: 0, poderes: [] };
+  const padrao = { gasto: 0, bonus: 0, poderes: [] };
   if (!bruta || typeof bruta !== "object") {
     return padrao;
   }
 
   const gasto =
     Number.isSafeInteger(bruta.gasto) && bruta.gasto >= 0 ? bruta.gasto : 0;
+
+  // NOVO: bônus vindo da API (inteiro entre 0 e TETO_BONUS)
+  let bonus =
+    Number.isSafeInteger(bruta.bonus) && bruta.bonus > 0 ? bruta.bonus : 0;
+  if (bonus > TETO_BONUS) {
+    bonus = TETO_BONUS;
+  }
 
   const idsValidos = PODERES.map((p) => p.id);
   const poderes = Array.isArray(bruta.poderes)
@@ -1113,7 +1148,7 @@ function normalizarLoja(bruta) {
       )
     : [];
 
-  return { gasto: gasto, poderes: poderes };
+  return { gasto: gasto, bonus: bonus, poderes: poderes };
 }
 
 /* =========================================================
@@ -1138,9 +1173,10 @@ function calcularPontosGanhos(resultados) {
 }
 
 // O saldo nunca fica negativo, mesmo que o aluno baixe uma nota depois de comprar.
+// NOVO: agora soma o bônus ganho nos jogos.
 function calcularSaldo() {
   const ganhos = calcularPontosGanhos(processarDados(dadosAtuais));
-  return Math.max(0, ganhos - lojaAtual.gasto);
+  return Math.max(0, ganhos + (lojaAtual.bonus || 0) - lojaAtual.gasto);
 }
 
 function calcularMediaGeral(resultados) {
@@ -1153,7 +1189,7 @@ function calcularMediaGeral(resultados) {
   return soma / medias.length;
 }
 
-/* ---------- AJUDANTES DE CÁLCULO (mapa e boss) ---------- */
+/* ---------- AJUDANTES DE CÁLCULO (boss e jogos) ---------- */
 function resumoNotas(r) {
   const notas = [r.tri1, r.tri2, r.tri3].filter((n) => n !== null);
   let soma = 0;
@@ -1192,8 +1228,11 @@ function atualizarLoja() {
   const saldo = calcularSaldo();
   lojaPontosBotao.textContent = saldo;
   lojaSaldo.textContent = saldo;
-  botaoLoja.disabled = modoEdicao; // não abre a loja no meio de uma edição
+  poderesSaldo.textContent = saldo; // NOVO: saldo também na área "Meus Poderes"
+  botaoLoja.disabled = modoEdicao;
+  botaoPoderes.disabled = modoEdicao; // NOVO: 🎒 bloqueado durante a edição
   desenharLoja(saldo);
+  desenharMeusPoderes(); // NOVO: redesenha também os poderes comprados
 }
 
 function desenharLoja(saldo) {
@@ -1201,12 +1240,15 @@ function desenharLoja(saldo) {
 
   PODERES.forEach((poder) => {
     const comprado = lojaAtual.poderes.includes(poder.id);
-    const podeComprar = !comprado && saldo >= poder.preco;
+    if (comprado) {
+      // NOVO: quem já foi comprado agora mora em "Meus Poderes" (botão 🎒),
+      // para não misturar comprar e usar.
+      return;
+    }
+    const podeComprar = saldo >= poder.preco;
 
     const card = criarEl("div", "poder-card");
-    if (comprado) {
-      card.classList.add("poder-comprado");
-    } else if (podeComprar) {
+    if (podeComprar) {
       card.classList.add("poder-disponivel");
     } else {
       card.classList.add("poder-bloqueado");
@@ -1217,16 +1259,12 @@ function desenharLoja(saldo) {
     card.appendChild(criarEl("span", "poder-nome", poder.nome));
     card.appendChild(criarEl("span", "poder-descricao", poder.descricao));
 
-    const preco = comprado ? "Comprado ✅" : "🪙 " + poder.preco + " pts";
-    card.appendChild(criarEl("span", "poder-preco", preco));
+    card.appendChild(criarEl("span", "poder-preco", "🪙 " + poder.preco + " pts"));
 
     const botao = criarEl("button", "botao");
     botao.type = "button";
 
-    if (comprado) {
-      botao.textContent = "Usar poder";
-      botao.addEventListener("click", () => abrirPoder(poder.id));
-    } else if (podeComprar) {
+    if (podeComprar) {
       botao.textContent = "Comprar";
       botao.addEventListener("click", () => comprarPoder(poder.id));
     } else {
@@ -1236,6 +1274,55 @@ function desenharLoja(saldo) {
 
     card.appendChild(botao);
     lojaPoderes.appendChild(card);
+  });
+
+  // NOVO: se tudo já foi comprado, a loja avisa em vez de ficar vazia
+  if (lojaPoderes.children.length === 0) {
+    const card = criarEl("div", "poder-card");
+    card.appendChild(criarEl("span", "poder-icone", "🏆"));
+    card.appendChild(criarEl("span", "poder-nome", "Você já tem todos os poderes!"));
+    card.appendChild(
+      criarEl("span", "poder-descricao", "Use eles no botão 🎒 Meus Poderes.")
+    );
+    lojaPoderes.appendChild(card);
+  }
+}
+
+/* NOVO: desenha a área "Meus Poderes" (só os comprados, com botão de usar) */
+function desenharMeusPoderes() {
+  poderesComprados.textContent = "";
+
+  const meus = PODERES.filter((p) => lojaAtual.poderes.includes(p.id));
+
+  if (meus.length === 0) {
+    const vazio = criarEl("div", "poder-card");
+    vazio.appendChild(criarEl("span", "poder-icone", "🎒"));
+    vazio.appendChild(criarEl("span", "poder-nome", "Nenhum poder ainda"));
+    vazio.appendChild(
+      criarEl(
+        "span",
+        "poder-descricao",
+        "Visite a Loja pelo botão 🎮 e compre seu primeiro poder com os pontos das suas notas."
+      )
+    );
+    poderesComprados.appendChild(vazio);
+    return;
+  }
+
+  meus.forEach((poder) => {
+    const card = criarEl("div", "poder-card poder-comprado");
+    card.appendChild(criarEl("span", "poder-icone", poder.icone));
+    card.appendChild(criarEl("span", "poder-materia", poder.materia));
+    card.appendChild(criarEl("span", "poder-nome", poder.nome));
+    card.appendChild(criarEl("span", "poder-descricao", poder.descricao));
+    card.appendChild(criarEl("span", "poder-preco", "Comprado ✅"));
+
+    const botao = criarEl("button", "botao", "Usar poder");
+    botao.type = "button";
+    botao.addEventListener("click", () => abrirPoder(poder.id, "poderes"));
+    card.appendChild(botao);
+
+    poderesComprados.appendChild(card);
   });
 }
 
@@ -1261,6 +1348,7 @@ async function comprarPoder(id) {
 
   const novaLoja = {
     gasto: lojaAtual.gasto + poder.preco,
+    bonus: lojaAtual.bonus || 0, // NOVO: o bônus vai junto no salvamento
     poderes: lojaAtual.poderes.concat([id])
   };
 
@@ -1289,7 +1377,7 @@ async function comprarPoder(id) {
 
     lojaAtual = novaLoja;
     atualizarLoja();
-    mostrarMensagem(mensagemLoja, "Poder comprado! Clique em “Usar poder” para jogar.", "sucesso");
+    mostrarMensagem(mensagemLoja, "Poder comprado! Use ele no botão 🎒 Meus Poderes.", "sucesso");
   } catch (erro) {
     mostrarMensagem(mensagemLoja, "Não foi possível conectar ao servidor. Tente novamente.", "erro");
   } finally {
@@ -1298,9 +1386,71 @@ async function comprarPoder(id) {
 }
 
 /* =========================================================
-   NAVEGAÇÃO: boletim <-> loja <-> poder
+   NOVO: creditarBonus(pontosPedidos)
+   Os jogos novos dão um bônus de pontos quando o aluno vence.
+   O bônus é maior quanto maior a média geral e tem um teto de
+   TETO_BONUS pontos no total. Ele é salvo na API em
+   dados.loja.bonus (com disciplinas, como tudo mais).
+   Se o salvamento falhar, nada muda na tela.
+   Devolve { ganho, motivo }, com motivo: "ok" | "teto" | "erro".
+   ========================================================= */
+async function creditarBonus(pontosPedidos) {
+  if (!dadosVemDaApi || ocupado) {
+    return { ganho: 0, motivo: "erro" };
+  }
+
+  const bonusAtual = lojaAtual.bonus || 0;
+  const espaco = Math.max(0, TETO_BONUS - bonusAtual);
+  const ganho = Math.min(pontosPedidos, espaco);
+
+  if (ganho <= 0) {
+    return { ganho: 0, motivo: "teto" };
+  }
+
+  const novaLoja = {
+    gasto: lojaAtual.gasto,
+    bonus: bonusAtual + ganho,
+    poderes: lojaAtual.poderes.slice()
+  };
+
+  ocupado = true;
+  try {
+    const resposta = await fetch(CONFIG_ALUNO.apiUrl + "/api/v1/boletins/salvar", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        turma: CONFIG_ALUNO.turma,
+        numero_chamada: CONFIG_ALUNO.numeroChamada,
+        pin: pinSessao,
+        dados: {
+          disciplinas: dadosAtuais,
+          loja: novaLoja
+        }
+      })
+    });
+
+    if (!resposta.ok) {
+      return { ganho: 0, motivo: "erro" };
+    }
+
+    lojaAtual = novaLoja;
+    atualizarLoja();
+    return { ganho: ganho, motivo: "ok" };
+  } catch (erro) {
+    return { ganho: 0, motivo: "erro" };
+  } finally {
+    ocupado = false;
+  }
+}
+
+/* =========================================================
+   NOVO: NAVEGAÇÃO: boletim <-> loja <-> meus poderes <-> poder
    Tudo dentro do mesmo arquivo, então o PIN continua em memória.
    ========================================================= */
+// NOVO: guarda de onde o poder foi aberto ("loja" ou "poderes"),
+// para o botão "Voltar" devolver para o lugar certo.
+let origemPoder = "loja";
+
 function abrirLoja() {
   if (ocupado) {
     return;
@@ -1320,26 +1470,60 @@ function abrirLoja() {
 
   mostrarMensagem(mensagemEdicao, "", "");
   mostrarMensagem(mensagemLoja, "", "");
+  mostrarMensagem(mensagemPoderes, "", ""); // NOVO
+  origemPoder = "loja"; // NOVO
   fecharPoder();
   atualizarLoja();
   areaBoletim.hidden = true;
+  areaPoderes.hidden = true; // NOVO
   areaLoja.hidden = false;
+  window.scrollTo(0, 0);
+}
+
+// NOVO: abre a área "Meus Poderes" (mesmas regras da loja)
+function abrirMeusPoderes() {
+  if (ocupado) {
+    return;
+  }
+  if (modoEdicao) {
+    mostrarMensagem(mensagemEdicao, "Termine ou cancele a edição antes de usar os poderes.", "erro");
+    return;
+  }
+  if (!dadosVemDaApi) {
+    mostrarMensagem(
+      mensagemEdicao,
+      "Salve seus dados em “Alterar dados” para liberar os poderes.",
+      "erro"
+    );
+    return;
+  }
+
+  mostrarMensagem(mensagemEdicao, "", "");
+  mostrarMensagem(mensagemLoja, "", "");
+  mostrarMensagem(mensagemPoderes, "", "");
+  origemPoder = "poderes";
+  fecharPoder();
+  atualizarLoja();
+  areaBoletim.hidden = true;
+  areaLoja.hidden = true;
+  areaPoderes.hidden = false;
   window.scrollTo(0, 0);
 }
 
 function voltarAoBoletim() {
   fecharPoder();
   areaLoja.hidden = true;
+  areaPoderes.hidden = true; // NOVO
   areaBoletim.hidden = false;
   atualizarGraficos(); // os gráficos são redesenhados ao voltar, para pegar o tamanho certo
   window.scrollTo(0, 0);
 }
 
 let timerCorrida = null;
-// NOVO: função de limpeza do poder aberto (para jogos, digitação, terminal etc.)
+// Função de limpeza do poder aberto (para jogos, digitação, terminal etc.)
 let limpezaPoder = null;
 
-function abrirPoder(id) {
+function abrirPoder(id, origem) {
   if (!lojaAtual.poderes.includes(id)) {
     return;
   }
@@ -1349,26 +1533,39 @@ function abrirPoder(id) {
     return;
   }
 
+  // NOVO: lembra a origem para o botão "Voltar" e para o fecharPoder
+  origemPoder = origem === "poderes" ? "poderes" : "loja";
+
   mostrarMensagem(mensagemLoja, "", "");
+  mostrarMensagem(mensagemPoderes, "", ""); // NOVO
   poderTitulo.textContent = poder.icone + " " + poder.nome;
   poderPalco.textContent = "";
   limpezaPoder = null;
   construtor(poderPalco);
 
   lojaPoderes.hidden = true;
+  poderesComprados.hidden = true; // NOVO
+  // NOVO: o texto do botão de voltar muda conforme de onde o poder foi aberto
+  botaoVoltarLoja.textContent =
+    origemPoder === "poderes" ? "← Voltar aos meus poderes" : "← Voltar à loja";
   poderTela.hidden = false;
 }
 
 function fecharPoder() {
   clearTimeout(timerCorrida);
-  // NOVO: para temporizadores do poder que estava aberto
+  // Para temporizadores do poder que estava aberto
   if (limpezaPoder) {
     limpezaPoder();
     limpezaPoder = null;
   }
   poderPalco.textContent = "";
   poderTela.hidden = true;
-  lojaPoderes.hidden = false;
+  // NOVO: mostra de novo a lista da área de origem
+  if (origemPoder === "poderes") {
+    poderesComprados.hidden = false;
+  } else {
+    lojaPoderes.hidden = false;
+  }
 }
 
 /* =========================================================
@@ -1647,1236 +1844,6 @@ function montarPincel(palco) {
 }
 
 /* =========================================================
-   PODER 2 — MAPA DO TESOURO (Geografia)
-   Uma ilha por matéria. Os números mostram a ordem sugerida
-   para superar os obstáculos e chegar à média 7.
+   NOVO: a PARTE 2 do script (poderes 2 a 10, com os três
+   jogos novos) deve ser colada EXATAMENTE aqui, logo abaixo.
    ========================================================= */
-function montarMapa(palco) {
-  const resultados = processarDados(dadosAtuais);
-  const mediaGeral = calcularMediaGeral(resultados);
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Cada ilha é uma matéria. Os números nas ilhas com obstáculo mostram a ordem sugerida: comece pelas mais difíceis. No fim do caminho está o tesouro, a média 7."
-    )
-  );
-
-  // Ilhas com obstáculo, da pior média para a melhor
-  const obstaculos = resultados
-    .filter((r) => r.media !== null && r.media < ALVO_TESOURO)
-    .sort((a, b) => a.media - b.media);
-
-  const mapa = criarEl("div", "mapa");
-
-  resultados.forEach((r) => {
-    const ilha = criarEl("div", "mapa-ilha");
-    let icone = "🏝️";
-    let detalhe = "";
-
-    if (r.media === null) {
-      ilha.classList.add("ilha-neutra");
-      icone = "🌫️";
-      detalhe = "Sem nota ainda.";
-    } else if (r.media >= ALVO_TESOURO) {
-      ilha.classList.add("ilha-ok");
-      icone = "🏝️";
-      detalhe = "Caminho livre!";
-    } else {
-      ilha.classList.add("ilha-atencao");
-      icone = r.media < MEDIA_MINIMA ? "🌋" : "🌩️";
-      detalhe = textoNotaNecessaria(r);
-
-      const passo = criarEl("span", "mapa-passo", String(obstaculos.indexOf(r) + 1));
-      ilha.appendChild(passo);
-    }
-
-    ilha.appendChild(criarEl("span", "mapa-ilha-icone", icone));
-    ilha.appendChild(criarEl("span", "mapa-ilha-nome", r.disciplina));
-    ilha.appendChild(criarEl("span", "mapa-ilha-info", "Média: " + (r.media === null ? "—" : formatarNota(r.media))));
-    ilha.appendChild(criarEl("span", "mapa-ilha-info", detalhe));
-    mapa.appendChild(ilha);
-  });
-
-  // Ilha final: o tesouro
-  const meta = criarEl("div", "mapa-ilha ilha-meta");
-  meta.appendChild(criarEl("span", "mapa-ilha-icone", "🏴‍☠️"));
-  meta.appendChild(criarEl("span", "mapa-ilha-nome", "Tesouro: média 7"));
-  if (mediaGeral === null) {
-    meta.appendChild(criarEl("span", "mapa-ilha-info", "Lance notas para começar a viagem."));
-  } else if (mediaGeral >= ALVO_TESOURO) {
-    meta.appendChild(criarEl("span", "mapa-ilha-info", "Média geral " + formatarNota(mediaGeral) + ". Tesouro conquistado! 🎉"));
-  } else {
-    meta.appendChild(
-      criarEl(
-        "span",
-        "mapa-ilha-info",
-        "Média geral " + formatarNota(mediaGeral) + ". Faltam " + formatarNota(ALVO_TESOURO - mediaGeral) + " ponto(s)."
-      )
-    );
-  }
-  mapa.appendChild(meta);
-
-  palco.appendChild(mapa);
-  palco.appendChild(
-    criarEl(
-      "p",
-      "mapa-legenda",
-      "🏝️ caminho livre · 🌩️ média entre 6 e 7 · 🌋 média abaixo de 6 · 🌫️ sem nota ainda"
-    )
-  );
-}
-
-/* =========================================================
-   PODER 3 — CALCULADORA DE BOSS (Matemática)
-   Cada matéria é um chefe. A simulação NÃO altera as notas.
-   ========================================================= */
-function textoDoBoss(r) {
-  if (r.media === null) {
-    return "Sem notas ainda. " + textoNotaNecessaria(r);
-  }
-  if (r.media >= ALVO_TESOURO) {
-    return "Média " + formatarNota(r.media) + ". Boss derrotado! 🎉";
-  }
-  return "Média " + formatarNota(r.media) + ". " + textoNotaNecessaria(r);
-}
-
-function montarBoss(palco) {
-  const resultados = processarDados(dadosAtuais);
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Cada matéria é um chefe. A barra de vida mostra o quanto falta para a média 7. Digite uma nota e ataque para simular. A simulação não muda suas notas reais."
-    )
-  );
-
-  const lista = criarEl("div", "boss-lista");
-
-  resultados.forEach((r) => {
-    const card = criarEl("div", "boss-card");
-    card.appendChild(criarEl("div", "boss-nome", "👾 " + r.disciplina));
-
-    const barra = criarEl("div", "boss-barra");
-    const vida = criarEl("div", "boss-vida");
-    vida.style.width = vidaDoBoss(r.media) + "%";
-    barra.appendChild(vida);
-    card.appendChild(barra);
-
-    const info = criarEl("div", "boss-info", textoDoBoss(r));
-    card.appendChild(info);
-
-    if (r.media !== null && r.media >= ALVO_TESOURO) {
-      card.classList.add("boss-derrotado");
-    }
-
-    const resumo = resumoNotas(r);
-    if (resumo.n < 3) {
-      const linha = criarEl("div", "pincel-ferramentas");
-      const campo = criarCampo("", r.disciplina + " - nota para simular", "decimal");
-      const botaoAtacar = criarEl("button", "botao", "Atacar ⚔️");
-      botaoAtacar.type = "button";
-
-      botaoAtacar.addEventListener("click", () => {
-        const lida = validarNotaDigitada(campo.value);
-        if (!lida.valido || lida.valor === null) {
-          campo.classList.add("campo-invalido");
-          info.textContent = "Digite uma nota de 0 a 10 para atacar.";
-          return;
-        }
-        const novaMedia = (resumo.soma + lida.valor) / (resumo.n + 1);
-        vida.style.width = vidaDoBoss(novaMedia) + "%";
-        const derrotado = novaMedia >= ALVO_TESOURO;
-        card.classList.toggle("boss-derrotado", derrotado);
-        info.textContent =
-          "Com " + formatarNota(lida.valor) + " sua média ficaria " + formatarNota(novaMedia) +
-          (derrotado ? ". Boss derrotado! 🎉" : ". O boss ainda está de pé.");
-      });
-
-      linha.appendChild(campo);
-      linha.appendChild(botaoAtacar);
-      card.appendChild(linha);
-    }
-
-    lista.appendChild(card);
-  });
-
-  palco.appendChild(lista);
-}
-
-/* =========================================================
-   PODER 4 — CORRIDA (Educação Física)
-   A média geral define até onde o corredor chega.
-   Média 7 = linha de chegada (confete!).
-   ========================================================= */
-function soltarConfete() {
-  const cores = ["#a259ff", "#4ade80", "#fbbf24", "#ef4444", "#7ec8ff", "#f472b6"];
-  for (let i = 0; i < 40; i++) {
-    const pedaco = criarEl("div", "confete");
-    pedaco.style.left = Math.random() * 100 + "%";
-    pedaco.style.background = cores[i % cores.length];
-    pedaco.style.animationDelay = Math.random() * 0.8 + "s";
-    document.body.appendChild(pedaco);
-    setTimeout(() => pedaco.remove(), 4500);
-  }
-}
-
-function montarCorrida(palco) {
-  const resultados = processarDados(dadosAtuais);
-  const mediaGeral = calcularMediaGeral(resultados);
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Quanto melhor a sua média geral, mais longe o corredor chega. A linha de chegada é a média 7."
-    )
-  );
-
-  const pista = criarEl("div", "corrida-pista");
-  const corredor = criarEl("div", "corrida-corredor", "🏃");
-  corredor.style.transform = "translateY(-50%) scaleX(-1)"; // vira o corredor para a direita
-  pista.appendChild(corredor);
-  pista.appendChild(criarEl("div", "corrida-chegada"));
-  palco.appendChild(pista);
-
-  let textoResultado;
-  let destino = 2;
-  if (mediaGeral === null) {
-    textoResultado = "Você ainda não tem notas para correr. Lance suas notas primeiro!";
-  } else {
-    destino = 2 + Math.min(mediaGeral / ALVO_TESOURO, 1) * 80;
-    textoResultado =
-      mediaGeral >= ALVO_TESOURO
-        ? "Média geral " + formatarNota(mediaGeral) + ": você cruzou a linha de chegada! 🏆"
-        : "Média geral " + formatarNota(mediaGeral) + ": faltam " + formatarNota(ALVO_TESOURO - mediaGeral) + " ponto(s) para a chegada.";
-  }
-
-  const resultado = criarEl("p", "corrida-resultado", "Aperte “Correr” para começar.");
-  palco.appendChild(resultado);
-
-  const botaoCorrer = criarEl("button", "botao", "Correr! 🏁");
-  botaoCorrer.type = "button";
-  botaoCorrer.addEventListener("click", () => {
-    clearTimeout(timerCorrida);
-
-    // Volta ao início sem animação e depois corre
-    corredor.style.transition = "none";
-    corredor.style.left = "2%";
-    void corredor.offsetWidth;
-    corredor.style.transition = "";
-    corredor.style.left = destino + "%";
-
-    resultado.textContent = "Correndo...";
-    botaoCorrer.disabled = true;
-
-    timerCorrida = setTimeout(() => {
-      resultado.textContent = textoResultado;
-      botaoCorrer.disabled = false;
-      if (mediaGeral !== null && mediaGeral >= ALVO_TESOURO) {
-        soltarConfete();
-      }
-    }, 2600);
-  });
-  palco.appendChild(botaoCorrer);
-}
-
-/* =========================================================
-   PODER 5 — LABORATÓRIO DE POÇÕES (Práticas Experimentais)
-   As poções enchem a página de partículas ou de aurora.
-   Tudo é só visual e dura até recarregar a página.
-   ========================================================= */
-const POCOES = [
-  { id: "atomos",   nome: "Chuva de átomos",   icone: "⚛️", tipo: "particulas", emoji: "⚛️", subir: false },
-  { id: "bolhas",   nome: "Bolhas",            icone: "🫧", tipo: "particulas", emoji: "🫧", subir: true },
-  { id: "cristais", nome: "Neve de cristais",  icone: "❄️", tipo: "particulas", emoji: "❄️", subir: false },
-  { id: "aurora",   nome: "Aurora",            icone: "🌌", tipo: "aurora" },
-  { id: "antidoto", nome: "Antídoto",          icone: "🧴", tipo: "limpar" }
-];
-
-let efeitoParticulas = null; // id da poção de partículas ligada (ou null)
-let timerParticulas = null;
-
-function pararParticulas() {
-  if (timerParticulas !== null) {
-    clearInterval(timerParticulas);
-    timerParticulas = null;
-  }
-  efeitoParticulas = null;
-  document.querySelectorAll(".particula").forEach((p) => p.remove());
-}
-
-function criarParticula(pocao) {
-  const particula = criarEl("span", "particula", pocao.emoji);
-  if (pocao.subir) {
-    particula.classList.add("particula-subir");
-  }
-  particula.style.left = Math.random() * 96 + "%";
-  particula.style.fontSize = 1 + Math.random() * 1.2 + "rem";
-  document.body.appendChild(particula);
-  setTimeout(() => particula.remove(), 6200);
-}
-
-function iniciarParticulas(pocao) {
-  pararParticulas();
-  efeitoParticulas = pocao.id;
-  timerParticulas = setInterval(() => criarParticula(pocao), 450);
-}
-
-function montarLaboratorio(palco) {
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Clique em uma poção para misturar. Os efeitos ficam na página até você usar o Antídoto ou recarregar."
-    )
-  );
-
-  const bancada = criarEl("div", "lab-bancada");
-  const botoes = [];
-
-  function atualizarAtivas() {
-    botoes.forEach((item) => {
-      let ativa = false;
-      if (item.pocao.tipo === "particulas") {
-        ativa = efeitoParticulas === item.pocao.id;
-      } else if (item.pocao.tipo === "aurora") {
-        ativa = document.body.classList.contains("efeito-aurora");
-      }
-      item.botao.classList.toggle("ativa", ativa);
-    });
-  }
-
-  POCOES.forEach((pocao) => {
-    const botao = criarEl("button", "lab-pocao");
-    botao.type = "button";
-    botao.appendChild(criarEl("span", "lab-pocao-icone", pocao.icone));
-    botao.appendChild(document.createTextNode(pocao.nome));
-
-    botao.addEventListener("click", () => {
-      if (pocao.tipo === "particulas") {
-        if (efeitoParticulas === pocao.id) {
-          pararParticulas();
-        } else {
-          iniciarParticulas(pocao);
-        }
-      } else if (pocao.tipo === "aurora") {
-        document.body.classList.toggle("efeito-aurora");
-      } else {
-        pararParticulas();
-        document.body.classList.remove("efeito-aurora");
-      }
-      atualizarAtivas();
-    });
-
-    botoes.push({ pocao: pocao, botao: botao });
-    bancada.appendChild(botao);
-  });
-
-  palco.appendChild(bancada);
-  atualizarAtivas();
-}
-
-/* =========================================================================
-   =========================================================================
-   NOVO: LOTE 2 DE PODERES
-   Máquina de Letras, Terrário Vivo, Máquina do Tempo,
-   Modo Player 2 e Terminal Hacker.
-   Nada aqui é salvo na API: só os IDs dos poderes comprados.
-   Cada poder que usa temporizadores define limpezaPoder, para
-   tudo parar quando o aluno volta para a loja.
-   =========================================================================
-   ========================================================================= */
-
-/* =========================================================
-   PODER 6 — MÁQUINA DE LETRAS (Língua Portuguesa)
-   Palavras caem. Digite cada uma (sem acento) para explodir.
-   1 minuto, 3 vidas. Os pontos são só do jogo.
-   ========================================================= */
-const PALAVRAS_LETRAS = [
-  "crase", "verbo", "sujeito", "acento", "texto", "frase", "poema", "conto",
-  "virgula", "adjetivo", "pronome", "silaba", "predicado", "ortografia",
-  "leitura", "gramatica", "redacao", "narrador", "paragrafo", "ponto",
-  "versos", "rima", "fabula", "cronica", "artigo", "numeral", "adverbio",
-  "palavra", "letra", "dicionario", "pontuacao", "sinonimo", "antonimo"
-];
-
-let recordeLetras = 0; // só durante a sessão
-
-function montarLetras(palco) {
-  const DURACAO = 60;
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Palavras caem do céu! Digite cada uma (sem acento) para explodi-la. Você tem 3 vidas e 1 minuto. Se uma palavra chegar ao chão, você perde uma vida."
-    )
-  );
-
-  /* ----- Placar ----- */
-  const hud = criarEl("div", "letras-hud");
-
-  function criarItemHud(rotulo, valorInicial) {
-    const item = criarEl("span", "letras-hud-item", rotulo);
-    const valor = criarEl("strong", "", String(valorInicial));
-    item.appendChild(valor);
-    hud.appendChild(item);
-    return valor;
-  }
-
-  const hudPontos = criarItemHud("Pontos", 0);
-  const hudVidas = criarItemHud("Vidas", "❤️❤️❤️");
-  const hudTempo = criarItemHud("Tempo", DURACAO + "s");
-  const hudRecorde = criarItemHud("Recorde", recordeLetras);
-  palco.appendChild(hud);
-
-  /* ----- Arena e campo de digitação ----- */
-  const arena = criarEl("div", "letras-arena");
-  palco.appendChild(arena);
-
-  const campo = document.createElement("input");
-  campo.type = "text";
-  campo.className = "acesso-campo letras-campo";
-  campo.autocomplete = "off";
-  campo.placeholder = "Digite a palavra aqui";
-  campo.setAttribute("autocapitalize", "none");
-  campo.setAttribute("spellcheck", "false");
-  campo.setAttribute("aria-label", "Digite a palavra que está caindo");
-  palco.appendChild(campo);
-
-  /* ----- Estado do jogo ----- */
-  let palavras = []; // { texto, el, y }
-  let pontos = 0;
-  let vidas = 3;
-  let restante = DURACAO;
-  let rodando = false;
-  let timerQueda = null;
-  let timerCriar = null;
-  let timerRelogio = null;
-
-  function pararJogo() {
-    clearInterval(timerQueda);
-    clearInterval(timerCriar);
-    clearInterval(timerRelogio);
-    timerQueda = null;
-    timerCriar = null;
-    timerRelogio = null;
-    rodando = false;
-  }
-
-  function atualizarHud() {
-    hudPontos.textContent = pontos;
-    hudVidas.textContent = vidas > 0 ? "❤️".repeat(vidas) : "💔";
-    hudTempo.textContent = restante + "s";
-  }
-
-  function removerPalavras() {
-    palavras.forEach((p) => p.el.remove());
-    palavras = [];
-  }
-
-  function mostrarTela(titulo, texto, rotuloBotao) {
-    const tela = criarEl("div", "letras-fim");
-    tela.appendChild(criarEl("div", "letras-fim-titulo", titulo));
-    tela.appendChild(criarEl("div", "letras-fim-texto", texto));
-    const botao = criarEl("button", "botao", rotuloBotao);
-    botao.type = "button";
-    botao.addEventListener("click", () => {
-      tela.remove();
-      iniciar();
-    });
-    tela.appendChild(botao);
-    arena.appendChild(tela);
-  }
-
-  function terminar(titulo) {
-    pararJogo();
-    removerPalavras();
-    let texto = "Você fez " + pontos + " pontos.";
-    if (pontos > recordeLetras) {
-      recordeLetras = pontos;
-      hudRecorde.textContent = recordeLetras;
-      texto += " Novo recorde! 🏆";
-    }
-    mostrarTela(titulo, texto, "Jogar de novo");
-  }
-
-  function perderVida() {
-    if (!rodando) {
-      return;
-    }
-    vidas--;
-    atualizarHud();
-    if (vidas <= 0) {
-      terminar("Fim de jogo!");
-    }
-  }
-
-  function criarPalavra() {
-    if (!rodando) {
-      return;
-    }
-    const usadas = palavras.map((p) => p.texto);
-    const livres = PALAVRAS_LETRAS.filter((t) => !usadas.includes(t));
-    if (livres.length === 0) {
-      return;
-    }
-    const texto = livres[Math.floor(Math.random() * livres.length)];
-    const el = criarEl("div", "letras-palavra", texto);
-    arena.appendChild(el);
-    const maxX = Math.max(0, arena.clientWidth - el.offsetWidth - 4);
-    el.style.left = Math.random() * maxX + "px";
-    const palavra = { texto: texto, el: el, y: -30 };
-    el.style.top = palavra.y + "px";
-    palavras.push(palavra);
-  }
-
-  function mover() {
-    const altura = arena.clientHeight;
-    // Fica um pouco mais rápido conforme o tempo passa
-    const velocidade = 1.5 + (DURACAO - restante) * 0.03;
-    palavras.slice().forEach((p) => {
-      if (!rodando) {
-        return;
-      }
-      p.y += velocidade;
-      p.el.style.top = p.y + "px";
-      if (p.y > altura - 30) {
-        palavras = palavras.filter((x) => x !== p);
-        p.el.remove();
-        perderVida();
-      }
-    });
-  }
-
-  function explodir(palavra) {
-    palavras = palavras.filter((x) => x !== palavra);
-    palavra.el.classList.remove("alvo");
-    palavra.el.classList.add("explodindo");
-    setTimeout(() => palavra.el.remove(), 450);
-    pontos += palavra.texto.length * 10;
-  }
-
-  function verificarDigitado() {
-    palavras.forEach((p) => p.el.classList.remove("alvo"));
-    const digitado = semAcento(campo.value.trim().toLowerCase());
-    if (digitado === "" || !rodando) {
-      return;
-    }
-    const exata = palavras.find((p) => p.texto === digitado);
-    if (exata) {
-      explodir(exata);
-      campo.value = "";
-      atualizarHud();
-      return;
-    }
-    // Destaca a palavra mais baixa que começa com o que foi digitado
-    const candidatas = palavras
-      .filter((p) => p.texto.startsWith(digitado))
-      .sort((a, b) => b.y - a.y);
-    if (candidatas.length > 0) {
-      candidatas[0].el.classList.add("alvo");
-    }
-  }
-
-  function iniciar() {
-    pararJogo();
-    removerPalavras();
-    pontos = 0;
-    vidas = 3;
-    restante = DURACAO;
-    rodando = true;
-    atualizarHud();
-    campo.value = "";
-    campo.focus();
-    criarPalavra();
-    timerQueda = setInterval(mover, 50);
-    timerCriar = setInterval(criarPalavra, 1800);
-    timerRelogio = setInterval(() => {
-      restante--;
-      atualizarHud();
-      if (restante <= 0) {
-        terminar("Tempo esgotado!");
-      }
-    }, 1000);
-  }
-
-  campo.addEventListener("input", verificarDigitado);
-
-  limpezaPoder = pararJogo;
-
-  mostrarTela("Máquina de Letras", "Pronto para o desafio de 1 minuto?", "Começar");
-}
-
-/* =========================================================
-   PODER 7 — TERRÁRIO VIVO (Ciências)
-   Média 7 ou mais = animal | 6 a 7 = planta | abaixo de 6 = ovo.
-   Matérias sem nota não aparecem.
-   ========================================================= */
-const SERES_ANIMAIS = {
-  "Língua Portuguesa": "🦉",
-  "Matemática": "🦊",
-  "Ciências": "🦎",
-  "História": "🐢",
-  "Geografia": "🦅",
-  "Língua Inglesa": "🦜",
-  "Arte": "🦋",
-  "Educação Física": "🐆",
-  "Educação Digital": "🐙",
-  "Educação Financeira": "🐿️",
-  "Estudo Orientado": "🐘",
-  "Redação e Leitura": "🐝",
-  "Pensamento Lógico": "🐬",
-  "Literatura Arte e Movimento": "🦢",
-  "Práticas Experimentais": "🐸"
-};
-
-const SERES_PLANTAS = ["🌱", "🌿", "🌻", "🌷", "🌵", "🍀"];
-
-function emojiAnimal(nomeDisciplina) {
-  if (Object.prototype.hasOwnProperty.call(SERES_ANIMAIS, nomeDisciplina)) {
-    return SERES_ANIMAIS[nomeDisciplina];
-  }
-  return "🐾";
-}
-
-function montarTerrario(palco) {
-  const resultados = processarDados(dadosAtuais);
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Cada matéria vira um ser vivo. Quanto melhor a média, mais evoluído ele fica. Clique em um ser para saber quem ele é."
-    )
-  );
-
-  const terrario = criarEl("div", "terrario");
-  const info = criarEl("div", "terrario-info", "Clique em um ser para saber quem ele é.");
-
-  let escolhido = null;
-  let indicePlanta = 0;
-  let total = 0;
-
-  resultados.forEach((r) => {
-    if (r.media === null) {
-      return;
-    }
-    total++;
-
-    const ser = criarEl("span", "terrario-ser");
-    let emoji;
-    let estado;
-    let topo;
-
-    if (r.media >= ALVO_TESOURO) {
-      emoji = emojiAnimal(r.disciplina);
-      estado = "animal solto";
-      topo = 8 + Math.random() * 52;
-    } else if (r.media >= MEDIA_MINIMA) {
-      emoji = SERES_PLANTAS[indicePlanta % SERES_PLANTAS.length];
-      indicePlanta++;
-      estado = "planta crescendo";
-      topo = 72 + Math.random() * 10;
-      ser.classList.add("terrario-planta");
-    } else {
-      emoji = "🥚";
-      estado = "ovo esperando para chocar";
-      topo = 74 + Math.random() * 8;
-      ser.classList.add("terrario-ovo");
-    }
-
-    ser.textContent = emoji;
-    ser.style.left = 4 + Math.random() * 68 + "%";
-    ser.style.top = topo + "%";
-    ser.style.setProperty("--dx", Math.round(Math.random() * 100 - 50) + "px");
-    ser.style.setProperty("--dy", Math.round(Math.random() * 50 - 25) + "px");
-    ser.style.setProperty("--duracao", (8 + Math.random() * 8).toFixed(1) + "s");
-    ser.setAttribute("role", "button");
-    ser.setAttribute("tabindex", "0");
-    ser.setAttribute("aria-label", r.disciplina + ": " + estado);
-
-    function escolher() {
-      if (escolhido) {
-        escolhido.classList.remove("terrario-escolhido");
-      }
-      ser.classList.add("terrario-escolhido");
-      escolhido = ser;
-      info.textContent =
-        emoji + " " + r.disciplina + " — média " + formatarNota(r.media) + " (" + estado + ")";
-    }
-
-    ser.addEventListener("click", escolher);
-    ser.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        escolher();
-      }
-    });
-
-    terrario.appendChild(ser);
-  });
-
-  if (total === 0) {
-    info.textContent = "Ainda não há notas para povoar o terrário.";
-  }
-
-  palco.appendChild(terrario);
-  palco.appendChild(info);
-  palco.appendChild(
-    criarEl(
-      "p",
-      "terrario-legenda",
-      "🦊 animal: média 7 ou mais · 🌿 planta: média de 6 a 7 · 🥚 ovo: média abaixo de 6 · matérias sem nota ainda não aparecem"
-    )
-  );
-}
-
-/* =========================================================
-   PODER 8 — MÁQUINA DO TEMPO (História)
-   O viajante passa pelos 3 trimestres. Cada personagem
-   comenta se a média subiu, caiu ou ficou igual.
-   ========================================================= */
-const ERAS_TEMPO = [
-  { era: "1º Tri · Egito Antigo", personagem: "👑" },
-  { era: "2º Tri · Idade Média", personagem: "🤺" },
-  { era: "3º Tri · Futuro", personagem: "🧑‍🚀" }
-];
-
-function falaDaEra(indice, atual, anterior) {
-  if (atual === null) {
-    return "Ainda não há notas neste trimestre. A viagem continua quando elas chegarem!";
-  }
-  const nota = formatarNota(atual);
-  const temComparacao = indice > 0 && anterior !== null;
-  const diferenca = temComparacao ? atual - anterior : 0;
-  const mudanca = formatarNota(Math.abs(diferenca));
-
-  if (indice === 0) {
-    if (atual >= ALVO_TESOURO) {
-      return "Por Rá! Média " + nota + ". Seu boletim merece uma pirâmide!";
-    }
-    if (atual >= MEDIA_MINIMA) {
-      return "Média " + nota + ". Boa fundação: até as pirâmides começaram com uma pedra.";
-    }
-    return "Média " + nota + ". Todo grande império começa com um desafio. Hora de reconstruir!";
-  }
-
-  if (indice === 1) {
-    if (!temComparacao) {
-      return "Média " + nota + ". Uma nova batalha começou, de armadura e tudo!";
-    }
-    if (diferenca > 0.05) {
-      return "Média " + nota + ": subiu " + mudanca + " ponto(s)! Seu escudo está cada vez mais forte.";
-    }
-    if (diferenca < -0.05) {
-      return "Média " + nota + ": caiu " + mudanca + " ponto(s). A batalha foi dura, mas cavaleiros se levantam.";
-    }
-    return "Média " + nota + ": firme como um castelo.";
-  }
-
-  if (!temComparacao) {
-    return "Média " + nota + ". Nova missão iniciada, rumo ao espaço!";
-  }
-  if (diferenca > 0.05) {
-    return "Média " + nota + ": subiu " + mudanca + " ponto(s). Decolagem perfeita! 🚀";
-  }
-  if (diferenca < -0.05) {
-    return "Média " + nota + ": caiu " + mudanca + " ponto(s). Turbulência, mas dá para corrigir a rota.";
-  }
-  return "Média " + nota + ": órbita estável.";
-}
-
-function montarTempo(palco) {
-  const resultados = processarDados(dadosAtuais);
-
-  const medias = ["tri1", "tri2", "tri3"].map((campo) => {
-    const notas = resultados.map((r) => r[campo]).filter((n) => n !== null);
-    if (notas.length === 0) {
-      return null;
-    }
-    let soma = 0;
-    notas.forEach((n) => (soma += n));
-    return soma / notas.length;
-  });
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Viaje pelos 3 trimestres e veja o que cada personagem tem a dizer sobre a sua média geral."
-    )
-  );
-
-  const linha = criarEl("div", "tempo-linha");
-  const trilho = criarEl("div", "tempo-trilho");
-  const progresso = criarEl("div", "tempo-progresso");
-  trilho.appendChild(progresso);
-  linha.appendChild(trilho);
-
-  const viajante = criarEl("div", "tempo-viajante", "⏳");
-  linha.appendChild(viajante);
-
-  const paradas = ERAS_TEMPO.map((era, i) => {
-    // Compara com o último trimestre que tem nota antes deste
-    let anterior = null;
-    for (let j = i - 1; j >= 0; j--) {
-      if (medias[j] !== null) {
-        anterior = medias[j];
-        break;
-      }
-    }
-
-    const parada = criarEl("div", "tempo-parada");
-    parada.appendChild(criarEl("span", "tempo-era", era.era));
-    parada.appendChild(criarEl("span", "tempo-personagem", era.personagem));
-    parada.appendChild(criarEl("span", "tempo-nota", medias[i] === null ? "—" : formatarNota(medias[i])));
-    parada.appendChild(criarEl("span", "tempo-fala", falaDaEra(i, medias[i], anterior)));
-    linha.appendChild(parada);
-    return parada;
-  });
-
-  palco.appendChild(linha);
-
-  const resumo = criarEl("p", "corrida-resultado", "");
-  palco.appendChild(resumo);
-
-  // Texto final comparando o primeiro e o último trimestre com nota
-  function textoResumo() {
-    const comNota = medias.filter((m) => m !== null);
-    if (comNota.length < 2) {
-      return "Viagem concluída! Continue lançando notas para ver sua evolução.";
-    }
-    const diferenca = comNota[comNota.length - 1] - comNota[0];
-    if (diferenca > 0.05) {
-      return "Resumo: sua média geral subiu " + formatarNota(diferenca) + " ponto(s) ao longo da viagem. 🚀";
-    }
-    if (diferenca < -0.05) {
-      return "Resumo: sua média geral caiu " + formatarNota(Math.abs(diferenca)) + " ponto(s). Ainda dá tempo de virar o jogo!";
-    }
-    return "Resumo: sua média geral ficou estável ao longo da viagem.";
-  }
-
-  const botao = criarEl("button", "botao", "Viajar no tempo ⏳");
-  botao.type = "button";
-  palco.appendChild(botao);
-
-  const timers = [];
-
-  function limparTimers() {
-    timers.forEach((t) => clearTimeout(t));
-    timers.length = 0;
-  }
-
-  function viajar() {
-    limparTimers();
-    botao.disabled = true;
-    resumo.textContent = "";
-    paradas.forEach((p) => p.classList.remove("visivel"));
-    progresso.style.width = "0%";
-    viajante.style.left = "16.66%";
-
-    const passos = [
-      { t: 400,  left: "16.66%", progresso: "0%" },
-      { t: 2000, left: "50%",    progresso: "50%" },
-      { t: 3600, left: "83.33%", progresso: "100%" }
-    ];
-
-    passos.forEach((passo, i) => {
-      timers.push(
-        setTimeout(() => {
-          viajante.style.left = passo.left;
-          progresso.style.width = passo.progresso;
-          paradas[i].classList.add("visivel");
-        }, passo.t)
-      );
-    });
-
-    timers.push(
-      setTimeout(() => {
-        resumo.textContent = textoResumo();
-        botao.disabled = false;
-      }, 5000)
-    );
-  }
-
-  botao.addEventListener("click", viajar);
-  limpezaPoder = limparTimers;
-
-  viajar(); // a viagem começa sozinha ao abrir o poder
-}
-
-/* =========================================================
-   PODER 9 — MODO PLAYER 2 (Língua Inglesa)
-   Um robô narra o boletim em inglês (efeito de digitação),
-   com a legenda em português logo depois.
-   ========================================================= */
-function montarPlayer2(palco) {
-  const resultados = processarDados(dadosAtuais);
-  const comNota = resultados.filter((r) => r.media !== null);
-  const mediaGeral = calcularMediaGeral(resultados);
-
-  const falas = [];
-  falas.push({
-    en: "Hello, Player One! I am Player Two.",
-    pt: "Olá, Jogador 1! Eu sou o Jogador 2."
-  });
-
-  if (mediaGeral === null) {
-    falas.push({
-      en: "No scores yet. Come back when you have some grades!",
-      pt: "Ainda não há notas. Volte quando tiver algumas!"
-    });
-  } else {
-    falas.push({
-      en: "Your overall score is " + mediaGeral.toFixed(1) + ".",
-      pt: "Sua média geral é " + formatarNota(mediaGeral) + "."
-    });
-
-    const ordenadas = comNota.slice().sort((a, b) => b.media - a.media);
-    const melhor = ordenadas[0];
-    const pior = ordenadas[ordenadas.length - 1];
-
-    falas.push({
-      en: "Your best quest is " + melhor.disciplina + ", with " + melhor.media.toFixed(1) + ".",
-      pt: "Sua melhor missão é " + melhor.disciplina + ", com " + formatarNota(melhor.media) + "."
-    });
-
-    if (pior.media < ALVO_TESOURO) {
-      falas.push({
-        en: "Boss fight ahead: " + pior.disciplina + ", at " + pior.media.toFixed(1) + ". You can beat it!",
-        pt: "Chefão à vista: " + pior.disciplina + ", com " + formatarNota(pior.media) + ". Você consegue vencer!"
-      });
-    } else {
-      falas.push({
-        en: "No boss fights left. Every quest is cleared!",
-        pt: "Nenhum chefão sobrando. Todas as missões estão vencidas!"
-      });
-    }
-
-    const boas = resultados.filter((r) => r.situacao === "Bom desempenho").length;
-    const atencao = resultados.filter((r) => r.situacao === "Atenção").length;
-    falas.push({
-      en:
-        boas + (boas === 1 ? " quest is" : " quests are") + " going great, and " +
-        atencao + (atencao === 1 ? " needs" : " need") + " attention.",
-      pt:
-        boas + (boas === 1 ? " missão está" : " missões estão") + " indo muito bem e " +
-        atencao + (atencao === 1 ? " precisa" : " precisam") + " de atenção."
-    });
-  }
-
-  falas.push({
-    en: "Game on! Keep leveling up.",
-    pt: "Bora jogar! Continue subindo de nível."
-  });
-
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Seu parceiro Player 2 vai narrar o seu boletim em inglês. A tradução aparece logo depois de cada fala."
-    )
-  );
-
-  const cena = criarEl("div", "player2-cena");
-  cena.appendChild(criarEl("div", "player2-personagem", "🤖"));
-
-  const balao = criarEl("div", "player2-balao");
-  const fala = criarEl("div", "player2-fala");
-  const legenda = criarEl("div", "player2-legenda");
-  balao.appendChild(fala);
-  balao.appendChild(legenda);
-  cena.appendChild(balao);
-  palco.appendChild(cena);
-
-  const botoes = criarEl("div", "player2-botoes");
-  const botaoProxima = criarEl("button", "botao", "Próxima fala ▶");
-  botaoProxima.type = "button";
-  const botaoRecomecar = criarEl("button", "botao", "Recomeçar ↺");
-  botaoRecomecar.type = "button";
-  botoes.appendChild(botaoProxima);
-  botoes.appendChild(botaoRecomecar);
-  palco.appendChild(botoes);
-
-  let indice = 0;
-  let timerDigitar = null;
-
-  function pararDigitacao() {
-    if (timerDigitar !== null) {
-      clearInterval(timerDigitar);
-      timerDigitar = null;
-    }
-  }
-
-  function mostrar(i) {
-    pararDigitacao();
-    indice = i;
-    const atual = falas[i];
-    fala.textContent = "";
-    legenda.textContent = "";
-    fala.classList.add("player2-digitando");
-    botaoProxima.disabled = true;
-
-    let n = 0;
-    timerDigitar = setInterval(() => {
-      n++;
-      fala.textContent = atual.en.slice(0, n);
-      if (n >= atual.en.length) {
-        pararDigitacao();
-        fala.classList.remove("player2-digitando");
-        legenda.textContent = "Tradução: " + atual.pt;
-        botaoProxima.disabled = i >= falas.length - 1;
-      }
-    }, 35);
-  }
-
-  botaoProxima.addEventListener("click", () => {
-    if (indice < falas.length - 1) {
-      mostrar(indice + 1);
-    }
-  });
-
-  botaoRecomecar.addEventListener("click", () => mostrar(0));
-
-  limpezaPoder = pararDigitacao;
-
-  mostrar(0);
-}
-
-/* =========================================================
-   PODER 10 — TERMINAL HACKER (Educação Digital)
-   Comandos: ajuda, status, notas, melhores, atencao, faltas,
-   tema, limpar. O PIN nunca aparece. Nada altera as notas.
-   ========================================================= */
-function montarTerminal(palco) {
-  palco.appendChild(
-    criarEl(
-      "p",
-      "poder-texto",
-      "Digite comandos como no terminal dos hackers de filme. Digite ajuda para ver a lista. É só uma brincadeira: nada aqui muda suas notas."
-    )
-  );
-
-  const PROMPT = "aluno@boletim:~$";
-
-  const terminal = criarEl("div", "terminal");
-  const saida = criarEl("div", "terminal-saida");
-  terminal.appendChild(saida);
-
-  const linhaEntrada = criarEl("div", "terminal-entrada-linha");
-  linhaEntrada.appendChild(criarEl("span", "terminal-prompt", PROMPT));
-
-  const entrada = document.createElement("input");
-  entrada.type = "text";
-  entrada.className = "terminal-entrada";
-  entrada.autocomplete = "off";
-  entrada.setAttribute("autocapitalize", "none");
-  entrada.setAttribute("spellcheck", "false");
-  entrada.setAttribute("aria-label", "Digite um comando");
-  linhaEntrada.appendChild(entrada);
-  terminal.appendChild(linhaEntrada);
-  palco.appendChild(terminal);
-
-  function escrever(texto, classe) {
-    const linha = criarEl("div", "terminal-linha" + (classe ? " " + classe : ""), texto);
-    saida.appendChild(linha);
-    saida.scrollTop = saida.scrollHeight;
-  }
-
-  const COMANDOS = {
-    ajuda: () => {
-      escrever("Comandos disponíveis:");
-      escrever("  ajuda      lista os comandos");
-      escrever("  status     resumo do seu boletim");
-      escrever("  notas      média de cada matéria");
-      escrever("  melhores   as 3 melhores matérias");
-      escrever("  atencao    matérias que precisam de atenção");
-      escrever("  faltas     faltas por trimestre");
-      escrever("  tema X     muda a cor (roxo, azul, amarelo, vermelho)");
-      escrever("  limpar     limpa a tela");
-    },
-
-    status: () => {
-      const resultados = processarDados(dadosAtuais);
-      const media = calcularMediaGeral(resultados);
-      let totalFaltas = 0;
-      resultados.forEach((r) => (totalFaltas += r.faltas));
-      const bom = resultados.filter((r) => r.situacao === "Bom desempenho").length;
-      const atencao = resultados.filter((r) => r.situacao === "Atenção").length;
-
-      escrever("Média geral: " + (media === null ? "—" : formatarNota(media)));
-      escrever("Total de faltas: " + totalFaltas);
-      escrever("Matérias com bom desempenho: " + bom);
-      escrever("Matérias que precisam de atenção: " + atencao);
-      escrever("Pontos na loja: " + calcularSaldo());
-      escrever("Poderes comprados: " + lojaAtual.poderes.length + " de " + PODERES.length);
-    },
-
-    notas: () => {
-      const resultados = processarDados(dadosAtuais);
-      resultados.forEach((r) => {
-        const nome = r.disciplina.padEnd(29, " ");
-        const valor = r.media === null ? "sem nota" : formatarNota(r.media);
-        escrever(nome + valor, r.situacao === "Atenção" ? "terminal-destaque" : "");
-      });
-    },
-
-    melhores: () => {
-      const ordenadas = processarDados(dadosAtuais)
-        .filter((r) => r.media !== null)
-        .sort((a, b) => b.media - a.media)
-        .slice(0, 3);
-      if (ordenadas.length === 0) {
-        escrever("Nenhuma nota lançada ainda.");
-        return;
-      }
-      ordenadas.forEach((r, i) => {
-        escrever((i + 1) + ". " + r.disciplina + " (" + formatarNota(r.media) + ")");
-      });
-    },
-
-    atencao: () => {
-      const lista = processarDados(dadosAtuais)
-        .filter((r) => r.situacao === "Atenção")
-        .sort((a, b) => a.media - b.media);
-      if (lista.length === 0) {
-        escrever("Nenhuma matéria em atenção. Missão cumprida! ✅");
-        return;
-      }
-      lista.forEach((r) => {
-        escrever("⚠ " + r.disciplina + " (" + formatarNota(r.media) + ")", "terminal-destaque");
-        escrever("   " + textoNotaNecessaria(r));
-      });
-    },
-
-    faltas: () => {
-      let t1 = 0;
-      let t2 = 0;
-      let t3 = 0;
-      dadosAtuais.forEach((d) => {
-        const f = obterFaltas(d);
-        t1 += f[0];
-        t2 += f[1];
-        t3 += f[2];
-      });
-      escrever("1º Tri: " + t1 + " falta(s)");
-      escrever("2º Tri: " + t2 + " falta(s)");
-      escrever("3º Tri: " + t3 + " falta(s)");
-      escrever("Total: " + (t1 + t2 + t3) + " falta(s)");
-    },
-
-    tema: (arg) => {
-      if (arg === "") {
-        escrever("Temas: " + TEMAS_VALIDOS.join(", ") + ". Exemplo: tema azul");
-        return;
-      }
-      if (TEMAS_VALIDOS.includes(arg)) {
-        aplicarTema(arg);
-        escrever("Tema alterado para " + arg + ".");
-      } else {
-        escrever("Tema desconhecido: " + arg + ". Opções: " + TEMAS_VALIDOS.join(", ") + ".", "terminal-erro");
-      }
-    },
-
-    limpar: () => {
-      saida.textContent = "";
-    },
-
-    // Comando secreto
-    sudo: () => {
-      escrever("Boa tentativa! Aqui você é só o Player 1. 😎", "terminal-destaque");
-    }
-  };
-
-  const historico = [];
-  let posicaoHistorico = 0;
-
-  function executar(textoBruto) {
-    const digitado = textoBruto.trim();
-    if (digitado === "") {
-      return;
-    }
-    escrever(PROMPT + " " + digitado, "terminal-usuario");
-
-    historico.push(digitado);
-    if (historico.length > 30) {
-      historico.shift();
-    }
-    posicaoHistorico = historico.length;
-
-    const partes = semAcento(digitado.toLowerCase()).split(/\s+/);
-    const nome = partes[0];
-    const arg = partes[1] || "";
-
-    if (Object.prototype.hasOwnProperty.call(COMANDOS, nome)) {
-      COMANDOS[nome](arg);
-    } else {
-      escrever("comando não encontrado: " + nome + ". Digite ajuda.", "terminal-erro");
-    }
-  }
-
-  entrada.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      executar(entrada.value);
-      entrada.value = "";
-    } else if (e.key === "ArrowUp") {
-      if (posicaoHistorico > 0) {
-        posicaoHistorico--;
-        entrada.value = historico[posicaoHistorico];
-      }
-      e.preventDefault();
-    } else if (e.key === "ArrowDown") {
-      if (posicaoHistorico < historico.length - 1) {
-        posicaoHistorico++;
-        entrada.value = historico[posicaoHistorico];
-      } else {
-        posicaoHistorico = historico.length;
-        entrada.value = "";
-      }
-      e.preventDefault();
-    }
-  });
-
-  /* Botões de atalho (úteis no celular) */
-  const atalhos = criarEl("div", "terminal-atalhos");
-  ["ajuda", "status", "notas", "melhores", "atencao", "faltas", "limpar"].forEach((comando) => {
-    const botao = criarEl("button", "terminal-atalho", comando);
-    botao.type = "button";
-    botao.addEventListener("click", () => executar(comando));
-    atalhos.appendChild(botao);
-  });
-  palco.appendChild(atalhos);
-
-  escrever("Boletim OS v1.0");
-  escrever("Digite ajuda para ver os comandos.", "terminal-destaque");
-
-  const timerFoco = setTimeout(() => entrada.focus({ preventScroll: true }), 0);
-  limpezaPoder = () => clearTimeout(timerFoco);
-}
-
-/* ---------- Qual função monta cada poder ---------- */
-const CONSTRUTORES_PODER = {
-  "arte": montarPincel,
-  "geografia": montarMapa,
-  "matematica": montarBoss,
-  "educacao-fisica": montarCorrida,
-  "experimentais": montarLaboratorio,
-  // NOVO: lote 2
-  "portugues": montarLetras,
-  "ciencias": montarTerrario,
-  "historia": montarTempo,
-  "ingles": montarPlayer2,
-  "digital": montarTerminal
-};
-
-/* ---------- EVENTOS DA LOJA ---------- */
-botaoLoja.addEventListener("click", abrirLoja);
-botaoVoltarBoletim.addEventListener("click", voltarAoBoletim);
-botaoVoltarLoja.addEventListener("click", () => {
-  fecharPoder();
-  mostrarMensagem(mensagemLoja, "", "");
-});
