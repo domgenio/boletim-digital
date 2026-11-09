@@ -158,8 +158,12 @@ let ocupado = false;
 let camposEdicao = [];
 
 /* Estado da loja (fica na API junto com as disciplinas) */
-// NOVO: bonus = pontos extra ganhos nos jogos novos (teto de TETO_BONUS)
 let lojaAtual = { gasto: 0, bonus: 0, poderes: [] };
+
+/* NOVO: teto total do bônus ganho nos minigames difíceis */
+const TETO_BONUS = 500;
+/* NOVO: de onde o poder aberto veio ("loja" ou "poderes") — o botão Voltar usa isso */
+let origemPoder = "loja";
 // Só vira true quando os dados vieram da API ou foram salvos com sucesso.
 // Enquanto for false, a loja fica bloqueada (para não salvar dados fictícios sem o aluno pedir).
 let dadosVemDaApi = false;
@@ -190,14 +194,13 @@ const poderTitulo = document.getElementById("poder-titulo");
 const poderPalco = document.getElementById("poder-palco");
 const botaoVoltarLoja = document.getElementById("botao-voltar-loja");
 const camadaBichos = document.getElementById("camada-bichos");
-
-/* NOVO: elementos da área "Meus Poderes" */
+/* NOVO: elementos da área “Meus Poderes” (🎒) */
 const botaoPoderes = document.getElementById("botao-poderes");
 const areaPoderes = document.getElementById("area-poderes");
 const botaoVoltarPoderes = document.getElementById("botao-voltar-poderes");
-const poderesSaldo = document.getElementById("poderes-saldo");
 const mensagemPoderes = document.getElementById("mensagem-poderes");
 const poderesComprados = document.getElementById("poderes-comprados");
+const poderesSaldo = document.getElementById("poderes-saldo");
 
 document.getElementById("acesso-turma").textContent = CONFIG_ALUNO.turma;
 document.getElementById("acesso-chamada").textContent = CONFIG_ALUNO.numeroChamada;
@@ -433,7 +436,7 @@ function renderizar() {
   desenharTabela(resultados);
   atualizarCards(resultados);
   atualizarGraficos(); // atualiza os gráficos (somente leitura)
-  atualizarLoja();     // atualiza pontos e cartões da loja e dos meus poderes
+  atualizarLoja();     // atualiza pontos e cartões da loja
 }
 
 /* =========================================================
@@ -553,7 +556,7 @@ async function abrirBoletim(evento) {
       dadosVemDaApi = true;
     } else {
       dadosAtuais = JSON.parse(JSON.stringify(disciplinas));
-      lojaAtual = { gasto: 0, bonus: 0, poderes: [] }; // NOVO: bonus entra no padrão
+      lojaAtual = { gasto: 0, bonus: 0, poderes: [] };
       dadosVemDaApi = false; // loja bloqueada até salvar
     }
 
@@ -564,7 +567,10 @@ async function abrirBoletim(evento) {
     areaAcesso.hidden = true;
     areaBoletim.hidden = false;
     areaLoja.hidden = true;
-    areaPoderes.hidden = true; // NOVO: garante a área nova fechada também
+    if (areaPoderes) {
+      areaPoderes.hidden = true; // NOVO: esconde também o 🎒 Meus Poderes
+    }
+    origemPoder = "loja"; // NOVO
 
     modoEdicao = false;
     botaoEditar.textContent = "Alterar dados";
@@ -990,27 +996,12 @@ function atualizarGraficos() {
    LOJA DE PODERES
    Os poderes são só diversão: nunca mudam as notas reais.
    Os pontos são calculados a partir das notas. A API guarda apenas
-   quanto foi gasto, o bônus ganho nos jogos e quais poderes foram
-   comprados (dados.loja).
+   quanto foi gasto e quais poderes foram comprados (dados.loja).
    =========================================================================
    ========================================================================= */
 
 /* ---------- CONSTANTES DA LOJA ---------- */
-const ALVO_TESOURO = 7.0; // média usada como "meta" no boss e nos jogos novos
-
-// NOVO: teto do bônus acumulado nos jogos e o multiplicador de cada um.
-// Bônus = média geral × 10 × multiplicador (arredondado).
-// Expedição é mais longa e paga 1,5x; Invasão e Corrida pagam 1x.
-const TETO_BONUS = 500;
-const BONUS_EXPEDICAO = 1.5;
-const BONUS_PADRAO = 1.0;
-
-function bonusDaMedia(mediaGeral, multiplicador) {
-  if (mediaGeral === null) {
-    return 0;
-  }
-  return Math.round(mediaGeral * 10 * multiplicador);
-}
+const ALVO_TESOURO = 7.0; // média que serve de "tesouro" no mapa, no boss e na corrida
 
 const PODERES = [
   {
@@ -1021,14 +1012,13 @@ const PODERES = [
     preco: 150,
     descricao: "Desenhe um bichinho e veja ele ganhar vida e andar pela página. Clique nele para pular!"
   },
-  /* NOVO: Geografia virou um jogo de verdade (antes era só olhar o mapa) */
   {
     id: "geografia",
-    icone: "⛵",
+    icone: "🧭",
     materia: "Geografia",
     nome: "Expedição do Tesouro",
     preco: 180,
-    descricao: "Navegue com o barco, colete baús nas ilhas das matérias e desvie dos redemoinhos. Juntou as moedas? O tesouro abre e dá bônus!"
+    descricao: "Minigame: guie o explorador até o tesouro com passos limitados. Vencer dá bônus de pontos! 🏅"
   },
   {
     id: "matematica",
@@ -1038,14 +1028,13 @@ const PODERES = [
     preco: 120,
     descricao: "Cada matéria vira um chefe. Simule uma nota e veja a vida dele cair."
   },
-  /* NOVO: Educação Física virou um runner (antes era só assistir o corredor) */
   {
     id: "educacao-fisica",
     icone: "🏃",
     materia: "Educação Física",
     nome: "Corrida de Obstáculos",
     preco: 130,
-    descricao: "Pule as bolas de faltas e aguentе 1 minuto na pista. Sua média geral dá vidas extras!"
+    descricao: "Minigame: pule e role pelos obstáculos até a bandeira. Vencer dá bônus de pontos! 🏅"
   },
   {
     id: "experimentais",
@@ -1055,6 +1044,7 @@ const PODERES = [
     preco: 150,
     descricao: "Misture poções que enchem a página de átomos, bolhas, neve de cristais ou aurora."
   },
+  /* ----- NOVO: LOTE 2 ----- */
   {
     id: "portugues",
     icone: "🔤",
@@ -1087,14 +1077,13 @@ const PODERES = [
     preco: 110,
     descricao: "Um robô narra o seu boletim em inglês, com legenda em português."
   },
-  /* NOVO: Educação Digital ganhou uma missão com história (o terminal continua!) */
   {
     id: "digital",
-    icone: "💻",
+    icone: "🕶️",
     materia: "Educação Digital",
     nome: "Missão de Invasão",
     preco: 130,
-    descricao: "Comandos de hacker (de mentirinha) para invadir o servidor e recuperar o arquivo de notas. Venceu? Bônus!"
+    descricao: "Minigame: quebre as camadas do firewall repetindo sequências. Vencer dá bônus de pontos! 🏅"
   }
 ];
 
@@ -1118,9 +1107,8 @@ function semAcento(texto) {
 
 /* =========================================================
    normalizarLoja(bruta)
-   Valida o que veio da API: só aceita poderes conhecidos,
-   um gasto inteiro maior ou igual a zero e, NOVO, um bônus
-   inteiro entre 0 e o teto.
+   Valida o que veio da API: só aceita poderes conhecidos
+   e um gasto inteiro maior ou igual a zero.
    ========================================================= */
 function normalizarLoja(bruta) {
   const padrao = { gasto: 0, bonus: 0, poderes: [] };
@@ -1131,12 +1119,11 @@ function normalizarLoja(bruta) {
   const gasto =
     Number.isSafeInteger(bruta.gasto) && bruta.gasto >= 0 ? bruta.gasto : 0;
 
-  // NOVO: bônus vindo da API (inteiro entre 0 e TETO_BONUS)
-  let bonus =
-    Number.isSafeInteger(bruta.bonus) && bruta.bonus > 0 ? bruta.bonus : 0;
-  if (bonus > TETO_BONUS) {
-    bonus = TETO_BONUS;
-  }
+  // NOVO: bônus ganho nos minigames (inteiro entre 0 e o teto de 500)
+  const bonus =
+    Number.isSafeInteger(bruta.bonus) && bruta.bonus >= 0
+      ? Math.min(bruta.bonus, TETO_BONUS)
+      : 0;
 
   const idsValidos = PODERES.map((p) => p.id);
   const poderes = Array.isArray(bruta.poderes)
@@ -1173,10 +1160,10 @@ function calcularPontosGanhos(resultados) {
 }
 
 // O saldo nunca fica negativo, mesmo que o aluno baixe uma nota depois de comprar.
-// NOVO: agora soma o bônus ganho nos jogos.
 function calcularSaldo() {
   const ganhos = calcularPontosGanhos(processarDados(dadosAtuais));
-  return Math.max(0, ganhos + (lojaAtual.bonus || 0) - lojaAtual.gasto);
+  const bonus = lojaAtual.bonus || 0; // NOVO: o bônus soma no saldo
+  return Math.max(0, ganhos + bonus - lojaAtual.gasto);
 }
 
 function calcularMediaGeral(resultados) {
@@ -1189,7 +1176,7 @@ function calcularMediaGeral(resultados) {
   return soma / medias.length;
 }
 
-/* ---------- AJUDANTES DE CÁLCULO (boss e jogos) ---------- */
+/* ---------- AJUDANTES DE CÁLCULO (mapa e boss) ---------- */
 function resumoNotas(r) {
   const notas = [r.tri1, r.tri2, r.tri3].filter((n) => n !== null);
   let soma = 0;
@@ -1228,11 +1215,14 @@ function atualizarLoja() {
   const saldo = calcularSaldo();
   lojaPontosBotao.textContent = saldo;
   lojaSaldo.textContent = saldo;
-  poderesSaldo.textContent = saldo; // NOVO: saldo também na área "Meus Poderes"
-  botaoLoja.disabled = modoEdicao;
-  botaoPoderes.disabled = modoEdicao; // NOVO: 🎒 bloqueado durante a edição
+  botaoLoja.disabled = modoEdicao; // não abre a loja no meio de uma edição
+  // NOVO: botão 🎒 e selo de saldo da área Meus Poderes
+  if (botaoPoderes) {
+    botaoPoderes.disabled = modoEdicao;
+  }
+  definirSaldoPoderes(saldo + " pts · bônus " + (lojaAtual.bonus || 0) + "/" + TETO_BONUS);
   desenharLoja(saldo);
-  desenharMeusPoderes(); // NOVO: redesenha também os poderes comprados
+  desenharMeusPoderes(); // NOVO
 }
 
 function desenharLoja(saldo) {
@@ -1240,15 +1230,12 @@ function desenharLoja(saldo) {
 
   PODERES.forEach((poder) => {
     const comprado = lojaAtual.poderes.includes(poder.id);
-    if (comprado) {
-      // NOVO: quem já foi comprado agora mora em "Meus Poderes" (botão 🎒),
-      // para não misturar comprar e usar.
-      return;
-    }
-    const podeComprar = saldo >= poder.preco;
+    const podeComprar = !comprado && saldo >= poder.preco;
 
     const card = criarEl("div", "poder-card");
-    if (podeComprar) {
+    if (comprado) {
+      card.classList.add("poder-comprado");
+    } else if (podeComprar) {
       card.classList.add("poder-disponivel");
     } else {
       card.classList.add("poder-bloqueado");
@@ -1259,12 +1246,16 @@ function desenharLoja(saldo) {
     card.appendChild(criarEl("span", "poder-nome", poder.nome));
     card.appendChild(criarEl("span", "poder-descricao", poder.descricao));
 
-    card.appendChild(criarEl("span", "poder-preco", "🪙 " + poder.preco + " pts"));
+    const preco = comprado ? "Comprado ✅" : "🪙 " + poder.preco + " pts";
+    card.appendChild(criarEl("span", "poder-preco", preco));
 
     const botao = criarEl("button", "botao");
     botao.type = "button";
 
-    if (podeComprar) {
+    if (comprado) {
+      botao.textContent = "Usar poder";
+      botao.addEventListener("click", () => abrirPoder(poder.id, "loja")); // NOVO: lembra a origem
+    } else if (podeComprar) {
       botao.textContent = "Comprar";
       botao.addEventListener("click", () => comprarPoder(poder.id));
     } else {
@@ -1275,41 +1266,49 @@ function desenharLoja(saldo) {
     card.appendChild(botao);
     lojaPoderes.appendChild(card);
   });
+}
 
-  // NOVO: se tudo já foi comprado, a loja avisa em vez de ficar vazia
-  if (lojaPoderes.children.length === 0) {
-    const card = criarEl("div", "poder-card");
-    card.appendChild(criarEl("span", "poder-icone", "🏆"));
-    card.appendChild(criarEl("span", "poder-nome", "Você já tem todos os poderes!"));
-    card.appendChild(
-      criarEl("span", "poder-descricao", "Use eles no botão 🎒 Meus Poderes.")
-    );
-    lojaPoderes.appendChild(card);
+/* =========================================================
+   NOVO: definirSaldoPoderes(valor)
+   Escreve o saldo no selo da área Meus Poderes, funcionando
+   tanto se o id estiver no número quanto no selo inteiro.
+   ========================================================= */
+function definirSaldoPoderes(valor) {
+  let alvo = null;
+  if (poderesSaldo) {
+    alvo = poderesSaldo.querySelector(".loja-saldo-valor") || poderesSaldo;
+  } else if (areaPoderes) {
+    alvo = areaPoderes.querySelector(".loja-saldo-valor");
+  }
+  if (alvo) {
+    alvo.textContent = valor;
   }
 }
 
-/* NOVO: desenha a área "Meus Poderes" (só os comprados, com botão de usar) */
+/* =========================================================
+   NOVO: desenharMeusPoderes()
+   Mostra na área 🎒 só os poderes comprados, prontos para usar.
+   ========================================================= */
 function desenharMeusPoderes() {
+  if (!poderesComprados) {
+    return;
+  }
   poderesComprados.textContent = "";
 
-  const meus = PODERES.filter((p) => lojaAtual.poderes.includes(p.id));
+  const comprados = PODERES.filter((p) => lojaAtual.poderes.includes(p.id));
 
-  if (meus.length === 0) {
-    const vazio = criarEl("div", "poder-card");
-    vazio.appendChild(criarEl("span", "poder-icone", "🎒"));
-    vazio.appendChild(criarEl("span", "poder-nome", "Nenhum poder ainda"));
-    vazio.appendChild(
+  if (comprados.length === 0) {
+    poderesComprados.appendChild(
       criarEl(
-        "span",
-        "poder-descricao",
-        "Visite a Loja pelo botão 🎮 e compre seu primeiro poder com os pontos das suas notas."
+        "p",
+        "loja-explicacao",
+        "Você ainda não tem poderes. Abra a 🛒 Loja e compre o primeiro!"
       )
     );
-    poderesComprados.appendChild(vazio);
     return;
   }
 
-  meus.forEach((poder) => {
+  comprados.forEach((poder) => {
     const card = criarEl("div", "poder-card poder-comprado");
     card.appendChild(criarEl("span", "poder-icone", poder.icone));
     card.appendChild(criarEl("span", "poder-materia", poder.materia));
@@ -1317,7 +1316,7 @@ function desenharMeusPoderes() {
     card.appendChild(criarEl("span", "poder-descricao", poder.descricao));
     card.appendChild(criarEl("span", "poder-preco", "Comprado ✅"));
 
-    const botao = criarEl("button", "botao", "Usar poder");
+    const botao = criarEl("button", "botao botao-usar", "Usar poder ▶");
     botao.type = "button";
     botao.addEventListener("click", () => abrirPoder(poder.id, "poderes"));
     card.appendChild(botao);
@@ -1348,7 +1347,7 @@ async function comprarPoder(id) {
 
   const novaLoja = {
     gasto: lojaAtual.gasto + poder.preco,
-    bonus: lojaAtual.bonus || 0, // NOVO: o bônus vai junto no salvamento
+    bonus: lojaAtual.bonus || 0, // NOVO: mantém o bônus ao comprar
     poderes: lojaAtual.poderes.concat([id])
   };
 
@@ -1377,7 +1376,7 @@ async function comprarPoder(id) {
 
     lojaAtual = novaLoja;
     atualizarLoja();
-    mostrarMensagem(mensagemLoja, "Poder comprado! Use ele no botão 🎒 Meus Poderes.", "sucesso");
+    mostrarMensagem(mensagemLoja, "Poder comprado! Clique em “Usar poder” para jogar.", "sucesso");
   } catch (erro) {
     mostrarMensagem(mensagemLoja, "Não foi possível conectar ao servidor. Tente novamente.", "erro");
   } finally {
@@ -1386,31 +1385,47 @@ async function comprarPoder(id) {
 }
 
 /* =========================================================
-   NOVO: creditarBonus(pontosPedidos)
-   Os jogos novos dão um bônus de pontos quando o aluno vence.
-   O bônus é maior quanto maior a média geral e tem um teto de
-   TETO_BONUS pontos no total. Ele é salvo na API em
-   dados.loja.bonus (com disciplinas, como tudo mais).
-   Se o salvamento falhar, nada muda na tela.
-   Devolve { ganho, motivo }, com motivo: "ok" | "teto" | "erro".
+   NOVO: BÔNUS DOS MINIGAMES DIFÍCEIS
+   Vencer a Expedição, a Missão de Invasão ou a Corrida de
+   Obstáculos dá pontos de bônus. Quanto maior a média geral,
+   maior o bônus (média × 10; a Expedição × 1,5). O total é
+   guardado na API em loja.bonus, com teto de 500 (TETO_BONUS).
    ========================================================= */
-async function creditarBonus(pontosPedidos) {
+function ganhoBonusDoJogo(idJogo) {
+  const resultados = processarDados(dadosAtuais);
+  const media = calcularMediaGeral(resultados);
+  if (media === null) {
+    return 0;
+  }
+  let ganho = Math.round(media * 10);
+  if (idJogo === "geografia") {
+    ganho = Math.round(media * 10 * 1.5); // a Expedição do Tesouro dá 1,5x
+  }
+  return ganho;
+}
+
+async function creditarBonus(idJogo) {
+  // Sem dados salvos na API não há onde guardar o bônus
   if (!dadosVemDaApi || ocupado) {
-    return { ganho: 0, motivo: "erro" };
+    return { ganhou: false, ganho: 0, teto: false, zero: false };
   }
 
+  const ganhoCheio = ganhoBonusDoJogo(idJogo);
   const bonusAtual = lojaAtual.bonus || 0;
-  const espaco = Math.max(0, TETO_BONUS - bonusAtual);
-  const ganho = Math.min(pontosPedidos, espaco);
+  const espaco = TETO_BONUS - bonusAtual;
 
-  if (ganho <= 0) {
-    return { ganho: 0, motivo: "teto" };
+  if (espaco <= 0) {
+    return { ganhou: false, ganho: 0, teto: true, zero: false };
+  }
+  if (ganhoCheio <= 0) {
+    return { ganhou: false, ganho: 0, teto: false, zero: true };
   }
 
+  const ganho = Math.min(ganhoCheio, espaco);
   const novaLoja = {
     gasto: lojaAtual.gasto,
     bonus: bonusAtual + ganho,
-    poderes: lojaAtual.poderes.slice()
+    poderes: lojaAtual.poderes
   };
 
   ocupado = true;
@@ -1430,27 +1445,79 @@ async function creditarBonus(pontosPedidos) {
     });
 
     if (!resposta.ok) {
-      return { ganho: 0, motivo: "erro" };
+      // A API pode estar ocupada (429). O jogo continua; o bônus só não salva.
+      return { ganhou: false, ganho: 0, teto: false, zero: false };
     }
 
     lojaAtual = novaLoja;
     atualizarLoja();
-    return { ganho: ganho, motivo: "ok" };
+    return { ganhou: true, ganho: ganho, teto: false, zero: false };
   } catch (erro) {
-    return { ganho: 0, motivo: "erro" };
+    return { ganhou: false, ganho: 0, teto: false, zero: false };
   } finally {
     ocupado = false;
   }
 }
 
 /* =========================================================
-   NOVO: NAVEGAÇÃO: boletim <-> loja <-> meus poderes <-> poder
+   NOVO: TELA DE FIM DE JOGO (comum aos 3 minigames)
+   Mostra o resultado, os pontos da rodada e a pílula do bônus.
+   Devolve a pílula para o jogo atualizar quando a API responder.
+   ========================================================= */
+function mostrarFimDeJogo(palco, opcoes) {
+  const tela = criarEl("div", "jogo-fim");
+  tela.appendChild(
+    criarEl("div", "jogo-fim-titulo " + (opcoes.venceu ? "vitoria" : "derrota"), opcoes.titulo)
+  );
+
+  if (opcoes.texto) {
+    tela.appendChild(criarEl("div", "jogo-fim-texto", opcoes.texto));
+  }
+
+  if (opcoes.pontos > 0) {
+    tela.appendChild(criarEl("div", "jogo-fim-pontos", "🎮 " + opcoes.pontos + " pts na rodada"));
+  }
+
+  let pilulaBonus = null;
+  if (opcoes.venceu) {
+    pilulaBonus = criarEl("div", "jogo-fim-bonus", "🏅 Salvando bônus...");
+    tela.appendChild(pilulaBonus);
+  }
+
+  const botao = criarEl("button", "botao", opcoes.rotuloBotao || "Jogar de novo");
+  botao.type = "button";
+  botao.addEventListener("click", () => {
+    tela.remove();
+    opcoes.recomecar();
+  });
+  tela.appendChild(botao);
+
+  palco.appendChild(tela);
+  return { tela: tela, bonus: pilulaBonus };
+}
+
+/* NOVO: escreve na pílula o que a API respondeu sobre o bônus */
+function atualizarPilulaBonus(pilula, resultado) {
+  if (!pilula || !resultado) {
+    return;
+  }
+  if (resultado.teto) {
+    pilula.classList.add("bonus-teto");
+    pilula.textContent = "🏅 Bônus máximo atingido (500 pts)!";
+  } else if (resultado.zero) {
+    pilula.textContent = "🏅 Sua média ainda não gera bônus.";
+  } else if (resultado.ganhou) {
+    pilula.textContent =
+      "🏅 Bônus: +" + resultado.ganho + " pts (agora " + (lojaAtual.bonus || 0) + "/" + TETO_BONUS + ")";
+  } else {
+    pilula.textContent = "🏅 O bônus não pôde ser salvo agora. Vença de novo para tentar!";
+  }
+}
+
+/* =========================================================
+   NAVEGAÇÃO: boletim <-> loja <-> poder
    Tudo dentro do mesmo arquivo, então o PIN continua em memória.
    ========================================================= */
-// NOVO: guarda de onde o poder foi aberto ("loja" ou "poderes"),
-// para o botão "Voltar" devolver para o lugar certo.
-let origemPoder = "loja";
-
 function abrirLoja() {
   if (ocupado) {
     return;
@@ -1470,23 +1537,23 @@ function abrirLoja() {
 
   mostrarMensagem(mensagemEdicao, "", "");
   mostrarMensagem(mensagemLoja, "", "");
-  mostrarMensagem(mensagemPoderes, "", ""); // NOVO
-  origemPoder = "loja"; // NOVO
   fecharPoder();
   atualizarLoja();
   areaBoletim.hidden = true;
-  areaPoderes.hidden = true; // NOVO
   areaLoja.hidden = false;
+  if (areaPoderes) {
+    areaPoderes.hidden = true; // NOVO
+  }
   window.scrollTo(0, 0);
 }
 
-// NOVO: abre a área "Meus Poderes" (mesmas regras da loja)
+/* NOVO: abre a área 🎒 Meus Poderes (usar os poderes comprados) */
 function abrirMeusPoderes() {
   if (ocupado) {
     return;
   }
   if (modoEdicao) {
-    mostrarMensagem(mensagemEdicao, "Termine ou cancele a edição antes de usar os poderes.", "erro");
+    mostrarMensagem(mensagemEdicao, "Termine ou cancele a edição antes de abrir os poderes.", "erro");
     return;
   }
   if (!dadosVemDaApi) {
@@ -1499,28 +1566,31 @@ function abrirMeusPoderes() {
   }
 
   mostrarMensagem(mensagemEdicao, "", "");
-  mostrarMensagem(mensagemLoja, "", "");
-  mostrarMensagem(mensagemPoderes, "", "");
-  origemPoder = "poderes";
+  if (mensagemPoderes) {
+    mostrarMensagem(mensagemPoderes, "", "");
+  }
   fecharPoder();
   atualizarLoja();
   areaBoletim.hidden = true;
   areaLoja.hidden = true;
-  areaPoderes.hidden = false;
+  if (areaPoderes) {
+    areaPoderes.hidden = false;
+  }
   window.scrollTo(0, 0);
 }
 
 function voltarAoBoletim() {
   fecharPoder();
   areaLoja.hidden = true;
-  areaPoderes.hidden = true; // NOVO
+  if (areaPoderes) {
+    areaPoderes.hidden = true; // NOVO
+  }
   areaBoletim.hidden = false;
   atualizarGraficos(); // os gráficos são redesenhados ao voltar, para pegar o tamanho certo
   window.scrollTo(0, 0);
 }
 
-let timerCorrida = null;
-// Função de limpeza do poder aberto (para jogos, digitação, terminal etc.)
+// NOVO: função de limpeza do poder aberto (para jogos, digitação, teclado etc.)
 let limpezaPoder = null;
 
 function abrirPoder(id, origem) {
@@ -1533,39 +1603,42 @@ function abrirPoder(id, origem) {
     return;
   }
 
-  // NOVO: lembra a origem para o botão "Voltar" e para o fecharPoder
+  // NOVO: lembra de onde o poder foi aberto, para o Voltar voltar pro lugar certo
   origemPoder = origem === "poderes" ? "poderes" : "loja";
+  if (botaoVoltarLoja) {
+    botaoVoltarLoja.textContent =
+      origemPoder === "poderes" ? "← Voltar ao Meus Poderes" : "← Voltar à loja";
+  }
 
   mostrarMensagem(mensagemLoja, "", "");
-  mostrarMensagem(mensagemPoderes, "", ""); // NOVO
+  if (mensagemPoderes) {
+    mostrarMensagem(mensagemPoderes, "", "");
+  }
   poderTitulo.textContent = poder.icone + " " + poder.nome;
   poderPalco.textContent = "";
   limpezaPoder = null;
   construtor(poderPalco);
 
-  lojaPoderes.hidden = true;
-  poderesComprados.hidden = true; // NOVO
-  // NOVO: o texto do botão de voltar muda conforme de onde o poder foi aberto
-  botaoVoltarLoja.textContent =
-    origemPoder === "poderes" ? "← Voltar aos meus poderes" : "← Voltar à loja";
+  if (origemPoder === "poderes") {
+    if (areaPoderes) {
+      areaPoderes.hidden = true; // NOVO: esconde a lista enquanto joga
+    }
+  } else {
+    lojaPoderes.hidden = true;
+  }
   poderTela.hidden = false;
+  window.scrollTo(0, 0);
 }
 
 function fecharPoder() {
-  clearTimeout(timerCorrida);
-  // Para temporizadores do poder que estava aberto
+  // NOVO: para temporizadores e teclado do poder que estava aberto
   if (limpezaPoder) {
     limpezaPoder();
     limpezaPoder = null;
   }
   poderPalco.textContent = "";
   poderTela.hidden = true;
-  // NOVO: mostra de novo a lista da área de origem
-  if (origemPoder === "poderes") {
-    poderesComprados.hidden = false;
-  } else {
-    lojaPoderes.hidden = false;
-  }
+  lojaPoderes.hidden = false;
 }
 
 /* =========================================================
@@ -1844,6 +1917,1650 @@ function montarPincel(palco) {
 }
 
 /* =========================================================
-   NOVO: a PARTE 2 do script (poderes 2 a 10, com os três
-   jogos novos) deve ser colada EXATAMENTE aqui, logo abaixo.
+   NOVO: PODER 2 — EXPEDIÇÃO DO TESOURO (Geografia)
+   Tabuleiro de 7x5. Use as setas (no celular, toque nelas;
+   no teclado, use as setas do teclado) para guiar o explorador
+   até o tesouro antes que os passos acabem. Gemas valem pontos
+   extras e armadilhas escondidas gastam passos.
+   Vencer dá bônus de pontos!
    ========================================================= */
+const EXPEDICAO_COLUNAS = 7;
+const EXPEDICAO_LINHAS = 5;
+const EXPEDICAO_PASSOS = 24;
+const EXPEDICAO_GEMAS = 4;
+const EXPEDICAO_ARMADILHAS = 4;
+const TERRENO_EXPEDICAO = ["🌿", "🌾", "🪨", "🌳"];
+
+function montarExpedicao(palco) {
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Guie o explorador 🧭 até o tesouro 🏆 usando as setas. Cada passo gasta 1 movimento, armadilhas escondidas 🪤 gastam 3 e cada gema 💎 vale pontos. Chegou no tesouro? Vitória com bônus!"
+    )
+  );
+
+  const container = criarEl("div", "expedicao");
+
+  /* ----- HUD: passos e gemas ----- */
+  const hud = criarEl("div", "expedicao-hud");
+  const hudPassos = criarEl("span", "expedicao-hud-item", "Passos: ");
+  const valorPassos = criarEl("strong", "", String(EXPEDICAO_PASSOS));
+  hudPassos.appendChild(valorPassos);
+  const hudGemas = criarEl("span", "expedicao-hud-item", "Gemas: ");
+  const valorGemas = criarEl("strong", "", "0/" + EXPEDICAO_GEMAS);
+  hudGemas.appendChild(valorGemas);
+  hud.appendChild(hudPassos);
+  hud.appendChild(hudGemas);
+  container.appendChild(hud);
+
+  const mapa = criarEl("div", "expedicao-map");
+  container.appendChild(mapa);
+
+  const msg = criarEl("p", "expedicao-msg", "Use as setas para andar pelo mapa.");
+  container.appendChild(msg);
+
+  const controles = criarEl("div", "expedicao-controles");
+  const setas = {};
+  [
+    ["cima", "⬆️", "Andar para cima"],
+    ["baixo", "⬇️", "Andar para baixo"],
+    ["esquerda", "⬅️", "Andar para a esquerda"],
+    ["direita", "➡️", "Andar para a direita"]
+  ].forEach(([nome, icone, descricao]) => {
+    const botao = criarEl("button", "expedicao-seta", icone);
+    botao.type = "button";
+    botao.setAttribute("aria-label", descricao);
+    setas[nome] = botao;
+    controles.appendChild(botao);
+  });
+  container.appendChild(controles);
+
+  palco.appendChild(container);
+
+  /* ----- Sorteia gemas e armadilhas (sem repetir posição) ----- */
+  function chave(l, c) {
+    return l + "-" + c;
+  }
+
+  const especiais = {};
+  const proibidas = [chave(2, 0), chave(2, EXPEDICAO_COLUNAS - 1)];
+
+  function sortear(tipo, quantas) {
+    let colocados = 0;
+    while (colocados < quantas) {
+      const l = Math.floor(Math.random() * EXPEDICAO_LINHAS);
+      const c = Math.floor(Math.random() * EXPEDICAO_COLUNAS);
+      const k = chave(l, c);
+      if (proibidas.includes(k) || especiais[k]) {
+        continue;
+      }
+      especiais[k] = tipo;
+      colocados++;
+    }
+  }
+
+  sortear("gema", EXPEDICAO_GEMAS);
+  sortear("armadilha", EXPEDICAO_ARMADILHAS);
+
+  /* ----- Monta o tabuleiro ----- */
+  const celulas = [];
+  for (let l = 0; l < EXPEDICAO_LINHAS; l++) {
+    celulas[l] = [];
+    for (let c = 0; c < EXPEDICAO_COLUNAS; c++) {
+      const celula = criarEl("div", "expedicao-celula");
+      const k = chave(l, c);
+      if (especiais[k] === "gema") {
+        celula.classList.add("gema");
+        celula.textContent = "💎";
+      } else if (l === 2 && c === EXPEDICAO_COLUNAS - 1) {
+        celula.classList.add("tesouro");
+        celula.textContent = "🏆";
+      } else {
+        // terreno comum — as armadilhas ficam escondidas nele
+        celula.textContent = TERRENO_EXPEDICAO[Math.floor(Math.random() * TERRENO_EXPEDICAO.length)];
+      }
+      celulas[l][c] = celula;
+      mapa.appendChild(celula);
+    }
+  }
+
+  /* ----- Estado da partida ----- */
+  let jogador = { linha: 2, coluna: 0 };
+  let passos = EXPEDICAO_PASSOS;
+  let gemas = 0;
+  let encerrado = false;
+
+  const explorador = criarEl("span", "expedicao-jogador", "🧭");
+
+  function colocarJogador() {
+    celulas[jogador.linha][jogador.coluna].appendChild(explorador);
+  }
+
+  function atualizarSetas() {
+    setas.cima.disabled = encerrado || jogador.linha === 0;
+    setas.baixo.disabled = encerrado || jogador.linha === EXPEDICAO_LINHAS - 1;
+    setas.esquerda.disabled = encerrado || jogador.coluna === 0;
+    setas.direita.disabled = encerrado || jogador.coluna === EXPEDICAO_COLUNAS - 1;
+  }
+
+  function recomecar() {
+    palco.textContent = "";
+    montarExpedicao(palco);
+  }
+
+  function vencer() {
+    encerrado = true;
+    atualizarSetas();
+    msg.textContent = "Tesouro encontrado! 🏆";
+    soltarConfete();
+    const fim = mostrarFimDeJogo(container, {
+      venceu: true,
+      titulo: "Tesouro encontrado! 🏆",
+      texto:
+        "Você pegou " + gemas + " gema(s) e ainda tinha " + Math.max(0, passos) + " passo(s) de sobra.",
+      pontos: gemas * 15 + Math.max(0, passos) * 5,
+      rotuloBotao: "Explorar de novo",
+      recomecar: recomecar
+    });
+    creditarBonus("geografia").then((resultado) => {
+      atualizarPilulaBonus(fim.bonus, resultado);
+    });
+  }
+
+  function perder() {
+    encerrado = true;
+    atualizarSetas();
+    msg.textContent = "Os passos acabaram...";
+    mostrarFimDeJogo(container, {
+      venceu: false,
+      titulo: "Os passos acabaram! 😵",
+      texto: "Você pegou " + gemas + " gema(s). Tente um caminho mais curto!",
+      pontos: gemas * 15,
+      rotuloBotao: "Explorar de novo",
+      recomecar: recomecar
+    });
+  }
+
+  function mover(dLinha, dColuna) {
+    if (encerrado) {
+      return;
+    }
+    const novaLinha = jogador.linha + dLinha;
+    const novaColuna = jogador.coluna + dColuna;
+    if (novaLinha < 0 || novaLinha >= EXPEDICAO_LINHAS || novaColuna < 0 || novaColuna >= EXPEDICAO_COLUNAS) {
+      return;
+    }
+
+    jogador = { linha: novaLinha, coluna: novaColuna };
+    passos--;
+    const celula = celulas[novaLinha][novaColuna];
+    celula.classList.add("explorada");
+    const tipo = especiais[chave(novaLinha, novaColuna)];
+
+    // Pisou no tesouro: vitória na hora
+    if (celula.classList.contains("tesouro")) {
+      colocarJogador();
+      vencer();
+      return;
+    }
+
+    if (tipo === "armadilha") {
+      especiais[chave(novaLinha, novaColuna)] = "usada";
+      celula.classList.add("revelada");
+      celula.textContent = "🪤";
+      passos -= 3;
+      msg.textContent = "Armadilha! 🪤 Você perdeu 3 passos extras.";
+    } else if (tipo === "gema") {
+      especiais[chave(novaLinha, novaColuna)] = "usada";
+      celula.classList.remove("gema");
+      celula.textContent = "";
+      gemas++;
+      valorGemas.textContent = gemas + "/" + EXPEDICAO_GEMAS;
+      msg.textContent = "Gema coletada! 💎 (" + gemas + " de " + EXPEDICAO_GEMAS + ")";
+    } else {
+      msg.textContent = "Andando... restam " + Math.max(0, passos) + " passo(s).";
+    }
+
+    valorPassos.textContent = String(Math.max(0, passos));
+    colocarJogador();
+    atualizarSetas();
+
+    if (passos <= 0) {
+      perder();
+    }
+  }
+
+  setas.cima.addEventListener("click", () => mover(-1, 0));
+  setas.baixo.addEventListener("click", () => mover(1, 0));
+  setas.esquerda.addEventListener("click", () => mover(0, -1));
+  setas.direita.addEventListener("click", () => mover(0, 1));
+
+  /* ----- Teclado: as setas do teclado também andam ----- */
+  function aoTeclado(e) {
+    if (encerrado) {
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      mover(-1, 0);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      mover(1, 0);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      mover(0, -1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      mover(0, 1);
+    }
+  }
+  document.addEventListener("keydown", aoTeclado);
+
+  // NOVO: ao sair do poder, remove o teclado da página inteira
+  limpezaPoder = () => document.removeEventListener("keydown", aoTeclado);
+
+  celulas[2][0].classList.add("explorada");
+  colocarJogador();
+  atualizarSetas();
+}
+
+/* =========================================================
+   PODER 3 — CALCULADORA DE BOSS (Matemática)
+   Cada matéria é um chefe. A simulação NÃO altera as notas.
+   ========================================================= */
+function textoDoBoss(r) {
+  if (r.media === null) {
+    return "Sem notas ainda. " + textoNotaNecessaria(r);
+  }
+  if (r.media >= ALVO_TESOURO) {
+    return "Média " + formatarNota(r.media) + ". Boss derrotado! 🎉";
+  }
+  return "Média " + formatarNota(r.media) + ". " + textoNotaNecessaria(r);
+}
+
+function montarBoss(palco) {
+  const resultados = processarDados(dadosAtuais);
+
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Cada matéria é um chefe. A barra de vida mostra o quanto falta para a média 7. Digite uma nota e ataque para simular. A simulação não muda suas notas reais."
+    )
+  );
+
+  const lista = criarEl("div", "boss-lista");
+
+  resultados.forEach((r) => {
+    const card = criarEl("div", "boss-card");
+    card.appendChild(criarEl("div", "boss-nome", "👾 " + r.disciplina));
+
+    const barra = criarEl("div", "boss-barra");
+    const vida = criarEl("div", "boss-vida");
+    vida.style.width = vidaDoBoss(r.media) + "%";
+    barra.appendChild(vida);
+    card.appendChild(barra);
+
+    const info = criarEl("div", "boss-info", textoDoBoss(r));
+    card.appendChild(info);
+
+    if (r.media !== null && r.media >= ALVO_TESOURO) {
+      card.classList.add("boss-derrotado");
+    }
+
+    const resumo = resumoNotas(r);
+    if (resumo.n < 3) {
+      const linha = criarEl("div", "pincel-ferramentas");
+      const campo = criarCampo("", r.disciplina + " - nota para simular", "decimal");
+      const botaoAtacar = criarEl("button", "botao", "Atacar ⚔️");
+      botaoAtacar.type = "button";
+
+      botaoAtacar.addEventListener("click", () => {
+        const lida = validarNotaDigitada(campo.value);
+        if (!lida.valido || lida.valor === null) {
+          campo.classList.add("campo-invalido");
+          info.textContent = "Digite uma nota de 0 a 10 para atacar.";
+          return;
+        }
+        const novaMedia = (resumo.soma + lida.valor) / (resumo.n + 1);
+        vida.style.width = vidaDoBoss(novaMedia) + "%";
+        const derrotado = novaMedia >= ALVO_TESOURO;
+        card.classList.toggle("boss-derrotado", derrotado);
+        info.textContent =
+          "Com " + formatarNota(lida.valor) + " sua média ficaria " + formatarNota(novaMedia) +
+          (derrotado ? ". Boss derrotado! 🎉" : ". O boss ainda está de pé.");
+      });
+
+      linha.appendChild(campo);
+      linha.appendChild(botaoAtacar);
+      card.appendChild(linha);
+    }
+
+    lista.appendChild(card);
+  });
+
+  palco.appendChild(lista);
+}
+
+/* =========================================================
+   NOVO: PODER 4 — CORRIDA DE OBSTÁCULOS (Educação Física)
+   Pule (⬆️) os obstáculos de chão 🚧 e role (⬇️) por baixo
+   dos altos 🛸. Chegue na bandeira 🏁 sem perder as 3 vidas.
+   Vencer dá bônus de pontos!
+   ========================================================= */
+function soltarConfete() {
+  const cores = ["#a259ff", "#4ade80", "#fbbf24", "#ef4444", "#7ec8ff", "#f472b6"];
+  for (let i = 0; i < 40; i++) {
+    const pedaco = criarEl("div", "confete");
+    pedaco.style.left = Math.random() * 100 + "%";
+    pedaco.style.background = cores[i % cores.length];
+    pedaco.style.animationDelay = Math.random() * 0.8 + "s";
+    document.body.appendChild(pedaco);
+    setTimeout(() => pedaco.remove(), 4500);
+  }
+}
+
+const CORRIDA_META_M = 200;   // distância até a bandeira, em metros
+const CORRIDA_INTERVALO = 50; // ms entre cada passo do jogo
+
+function montarCorridaObstaculos(palco) {
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Corra até a bandeira 🏁! Pule os obstáculos de chão 🚧 com “Pular” e role por baixo dos altos 🛸 com “Rolar” (no teclado: seta para cima e para baixo). Você tem 3 vidas. Chegou na bandeira? Vitória com bônus!"
+    )
+  );
+
+  const container = criarEl("div", "corrida-jogo");
+
+  /* ----- HUD: distância e vidas ----- */
+  const hud = criarEl("div", "corrida-hud");
+  const hudDistancia = criarEl("span", "corrida-hud-item", "Distância: ");
+  const valorDistancia = criarEl("strong", "", "0 m");
+  hudDistancia.appendChild(valorDistancia);
+  const hudVidas = criarEl("span", "corrida-hud-item", "Vidas: ");
+  const valorVidas = criarEl("strong", "", "❤️❤️❤️");
+  hudVidas.appendChild(valorVidas);
+  hud.appendChild(hudDistancia);
+  hud.appendChild(hudVidas);
+  container.appendChild(hud);
+
+  const arena = criarEl("div", "corrida-arena");
+  const jogador = criarEl("span", "corrida-jogador", "🏃");
+  arena.appendChild(jogador);
+  container.appendChild(arena);
+
+  const msg = criarEl("p", "corrida-msg", "Aperte “Correr!” para começar.");
+  container.appendChild(msg);
+
+  const botoes = criarEl("div", "corrida-botoes");
+  const botaoCorrer = criarEl("button", "botao", "Correr! 🏁");
+  botaoCorrer.type = "button";
+  const botaoPular = criarEl("button", "botao", "Pular ⬆️");
+  botaoPular.type = "button";
+  botaoPular.disabled = true;
+  const botaoRolar = criarEl("button", "botao", "Rolar ⬇️");
+  botaoRolar.type = "button";
+  botaoRolar.disabled = true;
+  botoes.appendChild(botaoPular);
+  botoes.appendChild(botaoRolar);
+  botoes.appendChild(botaoCorrer);
+  container.appendChild(botoes);
+
+  palco.appendChild(container);
+
+  /* ----- Estado da corrida ----- */
+  let rodando = false;
+  let distancia = 0; // em metros
+  let vidas = 3;
+  let invulneravelAte = 0;
+  let obstaculos = []; // { el, x, alto, passou }
+  let metaEl = null;   // { el, x }
+  let proximoSpawn = 10;
+  let timerJogo = null;
+  let timerPulo = null;
+  let timerRolar = null;
+
+  function pararTimers() {
+    clearInterval(timerJogo);
+    clearTimeout(timerPulo);
+    clearTimeout(timerRolar);
+    timerJogo = null;
+    timerPulo = null;
+    timerRolar = null;
+  }
+
+  function recomecar() {
+    palco.textContent = "";
+    montarCorridaObstaculos(palco);
+  }
+
+  function atualizarVidas() {
+    valorVidas.textContent = vidas > 0 ? "❤️".repeat(vidas) : "💔";
+  }
+
+  function criarObstaculo() {
+    const alto = Math.random() < 0.4;
+    const el = criarEl("span", "corrida-obstaculo" + (alto ? " alto" : ""), alto ? "🛸" : "🚧");
+    el.style.left = arena.clientWidth + "px";
+    arena.appendChild(el);
+    obstaculos.push({ el: el, x: arena.clientWidth, alto: alto, passou: false });
+  }
+
+  function criarMeta() {
+    const el = criarEl("span", "corrida-meta", "🏁");
+    el.style.left = arena.clientWidth + "px";
+    arena.appendChild(el);
+    metaEl = { el: el, x: arena.clientWidth };
+  }
+
+  function limparObstaculos() {
+    obstaculos.forEach((o) => o.el.remove());
+    obstaculos = [];
+    if (metaEl) {
+      metaEl.el.remove();
+      metaEl = null;
+    }
+  }
+
+  function bater() {
+    if (!rodando) {
+      return;
+    }
+    vidas--;
+    invulneravelAte = Date.now() + 900;
+    atualizarVidas();
+    arena.classList.remove("dano");
+    void arena.offsetWidth;
+    arena.classList.add("dano");
+    msg.textContent = "Bateu! Restam " + vidas + " vida(s).";
+    if (vidas <= 0) {
+      perder();
+    }
+  }
+
+  function vencer() {
+    pararJogo();
+    msg.textContent = "Chegou na bandeira! 🏁";
+    soltarConfete();
+    const fim = mostrarFimDeJogo(container, {
+      venceu: true,
+      titulo: "Chegada! 🏁",
+      texto:
+        "Você percorreu " + Math.floor(distancia) + " m e guardou " + vidas + " vida(s).",
+      pontos: Math.floor(distancia) + vidas * 30,
+      rotuloBotao: "Correr de novo",
+      recomecar: recomecar
+    });
+    creditarBonus("educacao-fisica").then((resultado) => {
+      atualizarPilulaBonus(fim.bonus, resultado);
+    });
+  }
+
+  function perder() {
+    pararJogo();
+    msg.textContent = "Você bateu demais...";
+    mostrarFimDeJogo(container, {
+      venceu: false,
+      titulo: "Três pancadas e acabou! 😵",
+      texto: "Você percorreu " + Math.floor(distancia) + " m. Dá para chegar mais longe!",
+      pontos: Math.floor(distancia),
+      rotuloBotao: "Correr de novo",
+      recomecar: recomecar
+    });
+  }
+
+  function pararJogo() {
+    rodando = false;
+    pararTimers();
+    botaoPular.disabled = true;
+    botaoRolar.disabled = true;
+    botaoCorrer.disabled = false;
+  }
+
+  function passoDoJogo() {
+    if (!rodando) {
+      return;
+    }
+
+    // A velocidade cresce um pouquinho com a distância
+    const passoPx = 9 + Math.min(distancia / 40, 4);
+    distancia += passoPx / 10;
+    valorDistancia.textContent = Math.floor(distancia) + " m";
+
+    /* A bandeira aparece quando a distância é atingida */
+    if (!metaEl && distancia >= CORRIDA_META_M) {
+      criarMeta();
+    }
+
+    /* Novos obstáculos só até a bandeira aparecer */
+    if (!metaEl && distancia >= proximoSpawn) {
+      criarObstaculo();
+      proximoSpawn = distancia + 12 + Math.random() * 10;
+    }
+
+    /* Move tudo para a esquerda */
+    obstaculos.forEach((o) => {
+      o.x -= passoPx;
+      o.el.style.left = o.x + "px";
+    });
+    if (metaEl) {
+      metaEl.x -= passoPx;
+      metaEl.el.style.left = metaEl.x + "px";
+    }
+
+    /* A bandeira cruzou o corredor: vitória */
+    const jogadorX = jogador.offsetLeft;
+    const jogadorLargura = jogador.offsetWidth || 40;
+    if (metaEl && metaEl.x <= jogadorX + jogadorLargura) {
+      vencer();
+      return;
+    }
+
+    /* Colisões: cada obstáculo é testado uma vez só */
+    obstaculos.forEach((o) => {
+      const largura = o.el.offsetWidth || 32;
+      const naZona = o.x < jogadorX + jogadorLargura && o.x + largura > jogadorX;
+      if (!o.passou && naZona) {
+        o.passou = true;
+        const salvou = o.alto
+          ? jogador.classList.contains("abaixando")
+          : jogador.classList.contains("pulando");
+        if (!salvou && Date.now() > invulneravelAte) {
+          bater();
+        }
+      }
+    });
+
+    /* Remove o que já passou da esquerda */
+    obstaculos = obstaculos.filter((o) => {
+      if (o.x + (o.el.offsetWidth || 32) < -10) {
+        o.el.remove();
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function iniciar() {
+    limparObstaculos();
+    distancia = 0;
+    vidas = 3;
+    proximoSpawn = 10;
+    invulneravelAte = 0;
+    atualizarVidas();
+    valorDistancia.textContent = "0 m";
+    msg.textContent = "Correndo! Pule 🚧 e role por baixo de 🛸.";
+    rodando = true;
+    botaoCorrer.disabled = true;
+    botaoPular.disabled = false;
+    botaoRolar.disabled = false;
+    timerJogo = setInterval(passoDoJogo, CORRIDA_INTERVALO);
+  }
+
+  function pular() {
+    if (!rodando) {
+      return;
+    }
+    jogador.classList.remove("abaixando");
+    jogador.classList.remove("pulando");
+    void jogador.offsetWidth;
+    jogador.classList.add("pulando");
+    clearTimeout(timerPulo);
+    timerPulo = setTimeout(() => jogador.classList.remove("pulando"), 480);
+  }
+
+  function rolar() {
+    if (!rodando) {
+      return;
+    }
+    jogador.classList.remove("pulando");
+    jogador.classList.add("abaixando");
+    clearTimeout(timerRolar);
+    timerRolar = setTimeout(() => jogador.classList.remove("abaixando"), 520);
+  }
+
+  botaoCorrer.addEventListener("click", iniciar);
+  botaoPular.addEventListener("click", pular);
+  botaoRolar.addEventListener("click", rolar);
+
+  /* ----- Teclado: seta para cima pula, para baixo rola ----- */
+  function aoTeclado(e) {
+    if (!rodando) {
+      return;
+    }
+    if (e.key === "ArrowUp" || e.key === " ") {
+      e.preventDefault();
+      pular();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      rolar();
+    }
+  }
+  document.addEventListener("keydown", aoTeclado);
+
+  // NOVO: ao sair do poder, para tudo e remove o teclado
+  limpezaPoder = () => {
+    pararTimers();
+    document.removeEventListener("keydown", aoTeclado);
+  };
+}
+
+/* =========================================================
+   PODER 5 — LABORATÓRIO DE POÇÕES (Práticas Experimentais)
+   As poções enchem a página de partículas ou de aurora.
+   Tudo é só visual e dura até recarregar a página.
+   ========================================================= */
+const POCOES = [
+  { id: "atomos",   nome: "Chuva de átomos",   icone: "⚛️", tipo: "particulas", emoji: "⚛️", subir: false },
+  { id: "bolhas",   nome: "Bolhas",            icone: "🫧", tipo: "particulas", emoji: "🫧", subir: true },
+  { id: "cristais", nome: "Neve de cristais",  icone: "❄️", tipo: "particulas", emoji: "❄️", subir: false },
+  { id: "aurora",   nome: "Aurora",            icone: "🌌", tipo: "aurora" },
+  { id: "antidoto", nome: "Antídoto",          icone: "🧴", tipo: "limpar" }
+];
+
+let efeitoParticulas = null; // id da poção de partículas ligada (ou null)
+let timerParticulas = null;
+
+function pararParticulas() {
+  if (timerParticulas !== null) {
+    clearInterval(timerParticulas);
+    timerParticulas = null;
+  }
+  efeitoParticulas = null;
+  document.querySelectorAll(".particula").forEach((p) => p.remove());
+}
+
+function criarParticula(pocao) {
+  const particula = criarEl("span", "particula", pocao.emoji);
+  if (pocao.subir) {
+    particula.classList.add("particula-subir");
+  }
+  particula.style.left = Math.random() * 96 + "%";
+  particula.style.fontSize = 1 + Math.random() * 1.2 + "rem";
+  document.body.appendChild(particula);
+  setTimeout(() => particula.remove(), 6200);
+}
+
+function iniciarParticulas(pocao) {
+  pararParticulas();
+  efeitoParticulas = pocao.id;
+  timerParticulas = setInterval(() => criarParticula(pocao), 450);
+}
+
+function montarLaboratorio(palco) {
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Clique em uma poção para misturar. Os efeitos ficam na página até você usar o Antídoto ou recarregar."
+    )
+  );
+
+  const bancada = criarEl("div", "lab-bancada");
+  const botoes = [];
+
+  function atualizarAtivas() {
+    botoes.forEach((item) => {
+      let ativa = false;
+      if (item.pocao.tipo === "particulas") {
+        ativa = efeitoParticulas === item.pocao.id;
+      } else if (item.pocao.tipo === "aurora") {
+        ativa = document.body.classList.contains("efeito-aurora");
+      }
+      item.botao.classList.toggle("ativa", ativa);
+    });
+  }
+
+  POCOES.forEach((pocao) => {
+    const botao = criarEl("button", "lab-pocao");
+    botao.type = "button";
+    botao.appendChild(criarEl("span", "lab-pocao-icone", pocao.icone));
+    botao.appendChild(document.createTextNode(pocao.nome));
+
+    botao.addEventListener("click", () => {
+      if (pocao.tipo === "particulas") {
+        if (efeitoParticulas === pocao.id) {
+          pararParticulas();
+        } else {
+          iniciarParticulas(pocao);
+        }
+      } else if (pocao.tipo === "aurora") {
+        document.body.classList.toggle("efeito-aurora");
+      } else {
+        pararParticulas();
+        document.body.classList.remove("efeito-aurora");
+      }
+      atualizarAtivas();
+    });
+
+    botoes.push({ pocao: pocao, botao: botao });
+    bancada.appendChild(botao);
+  });
+
+  palco.appendChild(bancada);
+  atualizarAtivas();
+}
+
+/* =========================================================================
+   =========================================================================
+   NOVO: LOTE 2 DE PODERES
+   Máquina de Letras, Terrário Vivo, Máquina do Tempo,
+   Modo Player 2 e Terminal Hacker.
+   Nada aqui é salvo na API: só os IDs dos poderes comprados.
+   Cada poder que usa temporizadores define limpezaPoder, para
+   tudo parar quando o aluno volta para a loja.
+   =========================================================================
+   ========================================================================= */
+
+/* =========================================================
+   PODER 6 — MÁQUINA DE LETRAS (Língua Portuguesa)
+   Palavras caem. Digite cada uma (sem acento) para explodir.
+   1 minuto, 3 vidas. Os pontos são só do jogo.
+   ========================================================= */
+const PALAVRAS_LETRAS = [
+  "crase", "verbo", "sujeito", "acento", "texto", "frase", "poema", "conto",
+  "virgula", "adjetivo", "pronome", "silaba", "predicado", "ortografia",
+  "leitura", "gramatica", "redacao", "narrador", "paragrafo", "ponto",
+  "versos", "rima", "fabula", "cronica", "artigo", "numeral", "adverbio",
+  "palavra", "letra", "dicionario", "pontuacao", "sinonimo", "antonimo"
+];
+
+let recordeLetras = 0; // só durante a sessão
+
+function montarLetras(palco) {
+  const DURACAO = 60;
+
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Palavras caem do céu! Digite cada uma (sem acento) para explodi-la. Você tem 3 vidas e 1 minuto. Se uma palavra chegar ao chão, você perde uma vida."
+    )
+  );
+
+  /* ----- Placar ----- */
+  const hud = criarEl("div", "letras-hud");
+
+  function criarItemHud(rotulo, valorInicial) {
+    const item = criarEl("span", "letras-hud-item", rotulo);
+    const valor = criarEl("strong", "", String(valorInicial));
+    item.appendChild(valor);
+    hud.appendChild(item);
+    return valor;
+  }
+
+  const hudPontos = criarItemHud("Pontos", 0);
+  const hudVidas = criarItemHud("Vidas", "❤️❤️❤️");
+  const hudTempo = criarItemHud("Tempo", DURACAO + "s");
+  const hudRecorde = criarItemHud("Recorde", recordeLetras);
+  palco.appendChild(hud);
+
+  /* ----- Arena e campo de digitação ----- */
+  const arena = criarEl("div", "letras-arena");
+  palco.appendChild(arena);
+
+  const campo = document.createElement("input");
+  campo.type = "text";
+  campo.className = "acesso-campo letras-campo";
+  campo.autocomplete = "off";
+  campo.placeholder = "Digite a palavra aqui";
+  campo.setAttribute("autocapitalize", "none");
+  campo.setAttribute("spellcheck", "false");
+  campo.setAttribute("aria-label", "Digite a palavra que está caindo");
+  palco.appendChild(campo);
+
+  /* ----- Estado do jogo ----- */
+  let palavras = []; // { texto, el, y }
+  let pontos = 0;
+  let vidas = 3;
+  let restante = DURACAO;
+  let rodando = false;
+  let timerQueda = null;
+  let timerCriar = null;
+  let timerRelogio = null;
+
+  function pararJogo() {
+    clearInterval(timerQueda);
+    clearInterval(timerCriar);
+    clearInterval(timerRelogio);
+    timerQueda = null;
+    timerCriar = null;
+    timerRelogio = null;
+    rodando = false;
+  }
+
+  function atualizarHud() {
+    hudPontos.textContent = pontos;
+    hudVidas.textContent = vidas > 0 ? "❤️".repeat(vidas) : "💔";
+    hudTempo.textContent = restante + "s";
+  }
+
+  function removerPalavras() {
+    palavras.forEach((p) => p.el.remove());
+    palavras = [];
+  }
+
+  function mostrarTela(titulo, texto, rotuloBotao) {
+    const tela = criarEl("div", "letras-fim");
+    tela.appendChild(criarEl("div", "letras-fim-titulo", titulo));
+    tela.appendChild(criarEl("div", "letras-fim-texto", texto));
+    const botao = criarEl("button", "botao", rotuloBotao);
+    botao.type = "button";
+    botao.addEventListener("click", () => {
+      tela.remove();
+      iniciar();
+    });
+    tela.appendChild(botao);
+    arena.appendChild(tela);
+  }
+
+  function terminar(titulo) {
+    pararJogo();
+    removerPalavras();
+    let texto = "Você fez " + pontos + " pontos.";
+    if (pontos > recordeLetras) {
+      recordeLetras = pontos;
+      hudRecorde.textContent = recordeLetras;
+      texto += " Novo recorde! 🏆";
+    }
+    mostrarTela(titulo, texto, "Jogar de novo");
+  }
+
+  function perderVida() {
+    if (!rodando) {
+      return;
+    }
+    vidas--;
+    atualizarHud();
+    if (vidas <= 0) {
+      terminar("Fim de jogo!");
+    }
+  }
+
+  function criarPalavra() {
+    if (!rodando) {
+      return;
+    }
+    const usadas = palavras.map((p) => p.texto);
+    const livres = PALAVRAS_LETRAS.filter((t) => !usadas.includes(t));
+    if (livres.length === 0) {
+      return;
+    }
+    const texto = livres[Math.floor(Math.random() * livres.length)];
+    const el = criarEl("div", "letras-palavra", texto);
+    arena.appendChild(el);
+    const maxX = Math.max(0, arena.clientWidth - el.offsetWidth - 4);
+    el.style.left = Math.random() * maxX + "px";
+    const palavra = { texto: texto, el: el, y: -30 };
+    el.style.top = palavra.y + "px";
+    palavras.push(palavra);
+  }
+
+  function mover() {
+    const altura = arena.clientHeight;
+    // Fica um pouco mais rápido conforme o tempo passa
+    const velocidade = 1.5 + (DURACAO - restante) * 0.03;
+    palavras.slice().forEach((p) => {
+      if (!rodando) {
+        return;
+      }
+      p.y += velocidade;
+      p.el.style.top = p.y + "px";
+      if (p.y > altura - 30) {
+        palavras = palavras.filter((x) => x !== p);
+        p.el.remove();
+        perderVida();
+      }
+    });
+  }
+
+  function explodir(palavra) {
+    palavras = palavras.filter((x) => x !== palavra);
+    palavra.el.classList.remove("alvo");
+    palavra.el.classList.add("explodindo");
+    setTimeout(() => palavra.el.remove(), 450);
+    pontos += palavra.texto.length * 10;
+  }
+
+  function verificarDigitado() {
+    palavras.forEach((p) => p.el.classList.remove("alvo"));
+    const digitado = semAcento(campo.value.trim().toLowerCase());
+    if (digitado === "" || !rodando) {
+      return;
+    }
+    const exata = palavras.find((p) => p.texto === digitado);
+    if (exata) {
+      explodir(exata);
+      campo.value = "";
+      atualizarHud();
+      return;
+    }
+    // Destaca a palavra mais baixa que começa com o que foi digitado
+    const candidatas = palavras
+      .filter((p) => p.texto.startsWith(digitado))
+      .sort((a, b) => b.y - a.y);
+    if (candidatas.length > 0) {
+      candidatas[0].el.classList.add("alvo");
+    }
+  }
+
+  function iniciar() {
+    pararJogo();
+    removerPalavras();
+    pontos = 0;
+    vidas = 3;
+    restante = DURACAO;
+    rodando = true;
+    atualizarHud();
+    campo.value = "";
+    campo.focus();
+    criarPalavra();
+    timerQueda = setInterval(mover, 50);
+    timerCriar = setInterval(criarPalavra, 1800);
+    timerRelogio = setInterval(() => {
+      restante--;
+      atualizarHud();
+      if (restante <= 0) {
+        terminar("Tempo esgotado!");
+      }
+    }, 1000);
+  }
+
+  campo.addEventListener("input", verificarDigitado);
+
+  limpezaPoder = pararJogo;
+
+  mostrarTela("Máquina de Letras", "Pronto para o desafio de 1 minuto?", "Começar");
+}
+
+/* =========================================================
+   PODER 7 — TERRÁRIO VIVO (Ciências)
+   Média 7 ou mais = animal | 6 a 7 = planta | abaixo de 6 = ovo.
+   Matérias sem nota não aparecem.
+   ========================================================= */
+const SERES_ANIMAIS = {
+  "Língua Portuguesa": "🦉",
+  "Matemática": "🦊",
+  "Ciências": "🦎",
+  "História": "🐢",
+  "Geografia": "🦅",
+  "Língua Inglesa": "🦜",
+  "Arte": "🦋",
+  "Educação Física": "🐆",
+  "Educação Digital": "🐙",
+  "Educação Financeira": "🐿️",
+  "Estudo Orientado": "🐘",
+  "Redação e Leitura": "🐝",
+  "Pensamento Lógico": "🐬",
+  "Literatura Arte e Movimento": "🦢",
+  "Práticas Experimentais": "🐸"
+};
+
+const SERES_PLANTAS = ["🌱", "🌿", "🌻", "🌷", "🌵", "🍀"];
+
+function emojiAnimal(nomeDisciplina) {
+  if (Object.prototype.hasOwnProperty.call(SERES_ANIMAIS, nomeDisciplina)) {
+    return SERES_ANIMAIS[nomeDisciplina];
+  }
+  return "🐾";
+}
+
+function montarTerrario(palco) {
+  const resultados = processarDados(dadosAtuais);
+
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Cada matéria vira um ser vivo. Quanto melhor a média, mais evoluído ele fica. Clique em um ser para saber quem ele é."
+    )
+  );
+
+  const terrario = criarEl("div", "terrario");
+  const info = criarEl("div", "terrario-info", "Clique em um ser para saber quem ele é.");
+
+  let escolhido = null;
+  let indicePlanta = 0;
+  let total = 0;
+
+  resultados.forEach((r) => {
+    if (r.media === null) {
+      return;
+    }
+    total++;
+
+    const ser = criarEl("span", "terrario-ser");
+    let emoji;
+    let estado;
+    let topo;
+
+    if (r.media >= ALVO_TESOURO) {
+      emoji = emojiAnimal(r.disciplina);
+      estado = "animal solto";
+      topo = 8 + Math.random() * 52;
+    } else if (r.media >= MEDIA_MINIMA) {
+      emoji = SERES_PLANTAS[indicePlanta % SERES_PLANTAS.length];
+      indicePlanta++;
+      estado = "planta crescendo";
+      topo = 72 + Math.random() * 10;
+      ser.classList.add("terrario-planta");
+    } else {
+      emoji = "🥚";
+      estado = "ovo esperando para chocar";
+      topo = 74 + Math.random() * 8;
+      ser.classList.add("terrario-ovo");
+    }
+
+    ser.textContent = emoji;
+    ser.style.left = 4 + Math.random() * 68 + "%";
+    ser.style.top = topo + "%";
+    ser.style.setProperty("--dx", Math.round(Math.random() * 100 - 50) + "px");
+    ser.style.setProperty("--dy", Math.round(Math.random() * 50 - 25) + "px");
+    ser.style.setProperty("--duracao", (8 + Math.random() * 8).toFixed(1) + "s");
+    ser.setAttribute("role", "button");
+    ser.setAttribute("tabindex", "0");
+    ser.setAttribute("aria-label", r.disciplina + ": " + estado);
+
+    function escolher() {
+      if (escolhido) {
+        escolhido.classList.remove("terrario-escolhido");
+      }
+      ser.classList.add("terrario-escolhido");
+      escolhido = ser;
+      info.textContent =
+        emoji + " " + r.disciplina + " — média " + formatarNota(r.media) + " (" + estado + ")";
+    }
+
+    ser.addEventListener("click", escolher);
+    ser.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        escolher();
+      }
+    });
+
+    terrario.appendChild(ser);
+  });
+
+  if (total === 0) {
+    info.textContent = "Ainda não há notas para povoar o terrário.";
+  }
+
+  palco.appendChild(terrario);
+  palco.appendChild(info);
+  palco.appendChild(
+    criarEl(
+      "p",
+      "terrario-legenda",
+      "🦊 animal: média 7 ou mais · 🌿 planta: média de 6 a 7 · 🥚 ovo: média abaixo de 6 · matérias sem nota ainda não aparecem"
+    )
+  );
+}
+
+/* =========================================================
+   PODER 8 — MÁQUINA DO TEMPO (História)
+   O viajante passa pelos 3 trimestres. Cada personagem
+   comenta se a média subiu, caiu ou ficou igual.
+   ========================================================= */
+const ERAS_TEMPO = [
+  { era: "1º Tri · Egito Antigo", personagem: "👑" },
+  { era: "2º Tri · Idade Média", personagem: "🤺" },
+  { era: "3º Tri · Futuro", personagem: "🧑‍🚀" }
+];
+
+function falaDaEra(indice, atual, anterior) {
+  if (atual === null) {
+    return "Ainda não há notas neste trimestre. A viagem continua quando elas chegarem!";
+  }
+  const nota = formatarNota(atual);
+  const temComparacao = indice > 0 && anterior !== null;
+  const diferenca = temComparacao ? atual - anterior : 0;
+  const mudanca = formatarNota(Math.abs(diferenca));
+
+  if (indice === 0) {
+    if (atual >= ALVO_TESOURO) {
+      return "Por Rá! Média " + nota + ". Seu boletim merece uma pirâmide!";
+    }
+    if (atual >= MEDIA_MINIMA) {
+      return "Média " + nota + ". Boa fundação: até as pirâmides começaram com uma pedra.";
+    }
+    return "Média " + nota + ". Todo grande império começa com um desafio. Hora de reconstruir!";
+  }
+
+  if (indice === 1) {
+    if (!temComparacao) {
+      return "Média " + nota + ". Uma nova batalha começou, de armadura e tudo!";
+    }
+    if (diferenca > 0.05) {
+      return "Média " + nota + ": subiu " + mudanca + " ponto(s)! Seu escudo está cada vez mais forte.";
+    }
+    if (diferenca < -0.05) {
+      return "Média " + nota + ": caiu " + mudanca + " ponto(s). A batalha foi dura, mas cavaleiros se levantam.";
+    }
+    return "Média " + nota + ": firme como um castelo.";
+  }
+
+  if (!temComparacao) {
+    return "Média " + nota + ". Nova missão iniciada, rumo ao espaço!";
+  }
+  if (diferenca > 0.05) {
+    return "Média " + nota + ": subiu " + mudanca + " ponto(s). Decolagem perfeita! 🚀";
+  }
+  if (diferenca < -0.05) {
+    return "Média " + nota + ": caiu " + mudanca + " ponto(s). Turbulência, mas dá para corrigir a rota.";
+  }
+  return "Média " + nota + ": órbita estável.";
+}
+
+function montarTempo(palco) {
+  const resultados = processarDados(dadosAtuais);
+
+  const medias = ["tri1", "tri2", "tri3"].map((campo) => {
+    const notas = resultados.map((r) => r[campo]).filter((n) => n !== null);
+    if (notas.length === 0) {
+      return null;
+    }
+    let soma = 0;
+    notas.forEach((n) => (soma += n));
+    return soma / notas.length;
+  });
+
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Viaje pelos 3 trimestres e veja o que cada personagem tem a dizer sobre a sua média geral."
+    )
+  );
+
+  const linha = criarEl("div", "tempo-linha");
+  const trilho = criarEl("div", "tempo-trilho");
+  const progresso = criarEl("div", "tempo-progresso");
+  trilho.appendChild(progresso);
+  linha.appendChild(trilho);
+
+  const viajante = criarEl("div", "tempo-viajante", "⏳");
+  linha.appendChild(viajante);
+
+  const paradas = ERAS_TEMPO.map((era, i) => {
+    // Compara com o último trimestre que tem nota antes deste
+    let anterior = null;
+    for (let j = i - 1; j >= 0; j--) {
+      if (medias[j] !== null) {
+        anterior = medias[j];
+        break;
+      }
+    }
+
+    const parada = criarEl("div", "tempo-parada");
+    parada.appendChild(criarEl("span", "tempo-era", era.era));
+    parada.appendChild(criarEl("span", "tempo-personagem", era.personagem));
+    parada.appendChild(criarEl("span", "tempo-nota", medias[i] === null ? "—" : formatarNota(medias[i])));
+    parada.appendChild(criarEl("span", "tempo-fala", falaDaEra(i, medias[i], anterior)));
+    linha.appendChild(parada);
+    return parada;
+  });
+
+  palco.appendChild(linha);
+
+  const resumo = criarEl("p", "corrida-resultado", "");
+  palco.appendChild(resumo);
+
+  // Texto final comparando o primeiro e o último trimestre com nota
+  function textoResumo() {
+    const comNota = medias.filter((m) => m !== null);
+    if (comNota.length < 2) {
+      return "Viagem concluída! Continue lançando notas para ver sua evolução.";
+    }
+    const diferenca = comNota[comNota.length - 1] - comNota[0];
+    if (diferenca > 0.05) {
+      return "Resumo: sua média geral subiu " + formatarNota(diferenca) + " ponto(s) ao longo da viagem. 🚀";
+    }
+    if (diferenca < -0.05) {
+      return "Resumo: sua média geral caiu " + formatarNota(Math.abs(diferenca)) + " ponto(s). Ainda dá tempo de virar o jogo!";
+    }
+    return "Resumo: sua média geral ficou estável ao longo da viagem.";
+  }
+
+  const botao = criarEl("button", "botao", "Viajar no tempo ⏳");
+  botao.type = "button";
+  palco.appendChild(botao);
+
+  const timers = [];
+
+  function limparTimers() {
+    timers.forEach((t) => clearTimeout(t));
+    timers.length = 0;
+  }
+
+  function viajar() {
+    limparTimers();
+    botao.disabled = true;
+    resumo.textContent = "";
+    paradas.forEach((p) => p.classList.remove("visivel"));
+    progresso.style.width = "0%";
+    viajante.style.left = "16.66%";
+
+    const passos = [
+      { t: 400,  left: "16.66%", progresso: "0%" },
+      { t: 2000, left: "50%",    progresso: "50%" },
+      { t: 3600, left: "83.33%", progresso: "100%" }
+    ];
+
+    passos.forEach((passo, i) => {
+      timers.push(
+        setTimeout(() => {
+          viajante.style.left = passo.left;
+          progresso.style.width = passo.progresso;
+          paradas[i].classList.add("visivel");
+        }, passo.t)
+      );
+    });
+
+    timers.push(
+      setTimeout(() => {
+        resumo.textContent = textoResumo();
+        botao.disabled = false;
+      }, 5000)
+    );
+  }
+
+  botao.addEventListener("click", viajar);
+  limpezaPoder = limparTimers;
+
+  viajar(); // a viagem começa sozinha ao abrir o poder
+}
+
+/* =========================================================
+   PODER 9 — MODO PLAYER 2 (Língua Inglesa)
+   Um robô narra o boletim em inglês (efeito de digitação),
+   com a legenda em português logo depois.
+   ========================================================= */
+function montarPlayer2(palco) {
+  const resultados = processarDados(dadosAtuais);
+  const comNota = resultados.filter((r) => r.media !== null);
+  const mediaGeral = calcularMediaGeral(resultados);
+
+  const falas = [];
+  falas.push({
+    en: "Hello, Player One! I am Player Two.",
+    pt: "Olá, Jogador 1! Eu sou o Jogador 2."
+  });
+
+  if (mediaGeral === null) {
+    falas.push({
+      en: "No scores yet. Come back when you have some grades!",
+      pt: "Ainda não há notas. Volte quando tiver algumas!"
+    });
+  } else {
+    falas.push({
+      en: "Your overall score is " + mediaGeral.toFixed(1) + ".",
+      pt: "Sua média geral é " + formatarNota(mediaGeral) + "."
+    });
+
+    const ordenadas = comNota.slice().sort((a, b) => b.media - a.media);
+    const melhor = ordenadas[0];
+    const pior = ordenadas[ordenadas.length - 1];
+
+    falas.push({
+      en: "Your best quest is " + melhor.disciplina + ", with " + melhor.media.toFixed(1) + ".",
+      pt: "Sua melhor missão é " + melhor.disciplina + ", com " + formatarNota(melhor.media) + "."
+    });
+
+    if (pior.media < ALVO_TESOURO) {
+      falas.push({
+        en: "Boss fight ahead: " + pior.disciplina + ", at " + pior.media.toFixed(1) + ". You can beat it!",
+        pt: "Chefão à vista: " + pior.disciplina + ", com " + formatarNota(pior.media) + ". Você consegue vencer!"
+      });
+    } else {
+      falas.push({
+        en: "No boss fights left. Every quest is cleared!",
+        pt: "Nenhum chefão sobrando. Todas as missões estão vencidas!"
+      });
+    }
+
+    const boas = resultados.filter((r) => r.situacao === "Bom desempenho").length;
+    const atencao = resultados.filter((r) => r.situacao === "Atenção").length;
+    falas.push({
+      en:
+        boas + (boas === 1 ? " quest is" : " quests are") + " going great, and " +
+        atencao + (atencao === 1 ? " needs" : " need") + " attention.",
+      pt:
+        boas + (boas === 1 ? " missão está" : " missões estão") + " indo muito bem e " +
+        atencao + (atencao === 1 ? " precisa" : " precisam") + " de atenção."
+    });
+  }
+
+  falas.push({
+    en: "Game on! Keep leveling up.",
+    pt: "Bora jogar! Continue subindo de nível."
+  });
+
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Seu parceiro Player 2 vai narrar o seu boletim em inglês. A tradução aparece logo depois de cada fala."
+    )
+  );
+
+  const cena = criarEl("div", "player2-cena");
+  cena.appendChild(criarEl("div", "player2-personagem", "🤖"));
+
+  const balao = criarEl("div", "player2-balao");
+  const fala = criarEl("div", "player2-fala");
+  const legenda = criarEl("div", "player2-legenda");
+  balao.appendChild(fala);
+  balao.appendChild(legenda);
+  cena.appendChild(balao);
+  palco.appendChild(cena);
+
+  const botoes = criarEl("div", "player2-botoes");
+  const botaoProxima = criarEl("button", "botao", "Próxima fala ▶");
+  botaoProxima.type = "button";
+  const botaoRecomecar = criarEl("button", "botao", "Recomeçar ↺");
+  botaoRecomecar.type = "button";
+  botoes.appendChild(botaoProxima);
+  botoes.appendChild(botaoRecomecar);
+  palco.appendChild(botoes);
+
+  let indice = 0;
+  let timerDigitar = null;
+
+  function pararDigitacao() {
+    if (timerDigitar !== null) {
+      clearInterval(timerDigitar);
+      timerDigitar = null;
+    }
+  }
+
+  function mostrar(i) {
+    pararDigitacao();
+    indice = i;
+    const atual = falas[i];
+    fala.textContent = "";
+    legenda.textContent = "";
+    fala.classList.add("player2-digitando");
+    botaoProxima.disabled = true;
+
+    let n = 0;
+    timerDigitar = setInterval(() => {
+      n++;
+      fala.textContent = atual.en.slice(0, n);
+      if (n >= atual.en.length) {
+        pararDigitacao();
+        fala.classList.remove("player2-digitando");
+        legenda.textContent = "Tradução: " + atual.pt;
+        botaoProxima.disabled = i >= falas.length - 1;
+      }
+    }, 35);
+  }
+
+  botaoProxima.addEventListener("click", () => {
+    if (indice < falas.length - 1) {
+      mostrar(indice + 1);
+    }
+  });
+
+  botaoRecomecar.addEventListener("click", () => mostrar(0));
+
+  limpezaPoder = pararDigitacao;
+
+  mostrar(0);
+}
+
+/* =========================================================
+   NOVO: PODER 10 — MISSÃO DE INVASÃO (Educação Digital)
+   O firewall tem 5 camadas. Observe a sequência de símbolos
+   e repita ela para quebrar cada camada (fica mais longa e
+   mais rápida a cada uma). 3 erros e a invasão falha.
+   Vencer dá bônus de pontos!
+   ========================================================= */
+const INVASAO_CAMADAS = 5;
+const INVASAO_SIMBOLOS = ["🔑", "💾", "⚡", "🖥️"];
+
+function montarInvasao(palco) {
+  palco.appendChild(
+    criarEl(
+      "p",
+      "poder-texto",
+      "Invada o firewall! Observe a sequência de símbolos que o sistema mostra e repita ela para quebrar a camada. Cada camada é mais longa e mais rápida. Três erros e o alarme dispara. Quebrou todas? Vitória com bônus!"
+    )
+  );
+
+  const container = criarEl("div", "invasao");
+
+  /* ----- HUD: camadas e tentativas ----- */
+  const hud = criarEl("div", "invasao-hud");
+  const hudCamadas = criarEl("span", "invasao-hud-item", "Camadas: ");
+  const valorCamadas = criarEl("strong", "", "0/" + INVASAO_CAMADAS);
+  hudCamadas.appendChild(valorCamadas);
+  const hudTentativas = criarEl("span", "invasao-hud-item", "Tentativas: ");
+  const valorTentativas = criarEl("strong", "", "❤️❤️❤️");
+  hudTentativas.appendChild(valorTentativas);
+  hud.appendChild(hudCamadas);
+  hud.appendChild(hudTentativas);
+  container.appendChild(hud);
+
+  const firewall = criarEl("div", "invasao-firewall");
+  const camadasEl = [];
+  for (let i = 0; i < INVASAO_CAMADAS; i++) {
+    const camada = criarEl("div", "invasao-camada");
+    firewall.appendChild(camada);
+    camadasEl.push(camada);
+  }
+  container.appendChild(firewall);
+
+  const msg = criarEl("p", "invasao-msg", "Aperte “Iniciar invasão” para começar.");
+  container.appendChild(msg);
+
+  const simbolos = criarEl("div", "invasao-simbolos");
+  const botoesSimbolo = INVASAO_SIMBOLOS.map((emoji) => {
+    const botao = criarEl("button", "invasao-simbolo", emoji);
+    botao.type = "button";
+    botao.disabled = true;
+    simbolos.appendChild(botao);
+    return botao;
+  });
+  container.appendChild(simbolos);
+
+  const botaoIniciar = criarEl("button", "botao", "Iniciar invasão 🔓");
+  botaoIniciar.type = "button";
+  container.appendChild(botaoIniciar);
+
+  palco.appendChild(container);
+
+  /* ----- Estado da invasão ----- */
+  let camadaAtual = 0;    // camadas já quebradas
+  let tentativas = 3;
+  let sequencia = [];     // índices dos símbolos da rodada
+  let posicaoJogador = 0; // quantos o jogador já acertou da rodada
+  let tocando = false;    // está mostrando a sequência?
+  let encerrado = false;
+  const timers = [];
+
+  function limparTimers() {
+    timers.forEach((t) => clearTimeout(t));
+    timers.length = 0;
+  }
+
+  // NOVO: ao sair do poder, para tudo
+  limpezaPoder = limparTimers;
+
+  function definirBotoes(ativar) {
+    botoesSimbolo.forEach((b) => (b.disabled = !ativar));
+  }
+
+  function atualizarHud() {
+    valorCamadas.textContent = camadaAtual + "/" + INVASAO_CAMADAS;
+    valorTentativas.textContent = tentativas > 0 ? "❤️".repeat(tentativas) : "💔";
+    camadasEl.forEach((camada, i) => {
+      camada.classList.toggle("quebrada", i < camadaAtual);
+    });
+  }
+
+  function recomecar() {
+    palco.textContent = "";
+    montarInvasao(palco);
+  }
+
+  function acenderSimbolo(indice, classe, duracao) {
+    const botao = botoesSimbolo[indice];
+    if (!botao) {
+      return;
+    }
+    botao.classList.add(classe);
+    timers.push(setTimeout(() => botao.classList.remove(classe), duracao));
+  }
+
+  function tocarSequencia() {
+    tocando = true;
+    definirBotoes(false);
+    msg.textContent = "Observe a sequência...";
+    const velocidade = 650 - camadaAtual * 60; // fica mais rápido por camada
+    sequencia.forEach((indice, i) => {
+      timers.push(
+        setTimeout(() => {
+          acenderSimbolo(indice, "acesa", Math.max(240, velocidade - 160));
+        }, i * velocidade)
+      );
+    });
+    timers.push(
+      setTimeout(() => {
+        tocando = false;
+        posicaoJogador = 0;
+        definirBotoes(true);
+        msg.textContent = "Sua vez! Repita a sequência.";
+      }, sequencia.length * velocidade + 150)
+    );
+  }
+
+  function novaRodada() {
+    const tamanho = 3 + camadaAtual; // 3, 4, 5, 6 e 7 símbolos
+    sequencia = [];
+    for (let i = 0; i < tamanho; i++) {
+      sequencia.push(Math.floor(Math.random() * INVASAO_SIMBOLOS.length));
+    }
+    tocarSequencia();
+  }
+
+  function vencer() {
+    encerrado = true;
+    definirBotoes(false);
+    botaoIniciar.disabled = true;
+    msg.textContent = "Firewall invadido! 💚";
+    soltarConfete();
+    const fim = mostrarFimDeJogo(container, {
+      venceu: true,
+      titulo: "Firewall invadido! 💚",
+      texto:
+        "Você quebrou as " + INVASAO_CAMADAS + " camadas com " + tentativas + " tentativa(s) de sobra.",
+      pontos: INVASAO_CAMADAS * 40 + tentativas * 40,
+      rotuloBotao: "Invadir de novo",
+      recomecar: recomecar
+    });
+    creditarBonus("digital").then((resultado) => {
+      atualizarPilulaBonus(fim.bonus, resultado);
+    });
+  }
+
+  function perder() {
+    encerrado = true;
+    definirBotoes(false);
+    botaoIniciar.disabled = true;
+    msg.textContent = "A invasão falhou...";
+    mostrarFimDeJogo(container, {
+      venceu: false,
+      titulo: "Invasão detectada! 🚨",
+      texto:
+        "Você quebrou " + camadaAtual + " de " + INVASAO_CAMADAS + " camadas. Tente mais uma vez!",
+      pontos: camadaAtual * 40,
+      rotuloBotao: "Tentar de novo",
+      recomecar: recomecar
+    });
+  }
+
+  function clicarSimbolo(indice) {
+    if (encerrado || tocando) {
+      return;
+    }
+    if (indice === sequencia[posicaoJogador]) {
+      acenderSimbolo(indice, "acerto", 220);
+      posicaoJogador++;
+      if (posicaoJogador >= sequencia.length) {
+        camadaAtual++;
+        atualizarHud();
+        if (camadaAtual >= INVASAO_CAMADAS) {
+          vencer();
+        } else {
+          msg.textContent =
+            "Camada quebrada! 🔓 Restam " + (INVASAO_CAMADAS - camadaAtual) + ".";
+          definirBotoes(false);
+          timers.push(setTimeout(novaRodada, 900));
+        }
+      }
+    } else {
+      acenderSimbolo(indice, "erro", 350);
+      tentativas--;
+      atualizarHud();
+      if (tentativas <= 0) {
+        perder();
+      } else {
+        msg.textContent =
+          "Erro! Restam " + tentativas + " tentativa(s). Observe de novo...";
+        definirBotoes(false);
+        timers.push(setTimeout(tocarSequencia, 900));
+      }
+    }
+  }
+
+  botoesSimbolo.forEach((botao, indice) => {
+    botao.addEventListener("click", () => clicarSimbolo(indice));
+  });
+
+  botaoIniciar.addEventListener("click", () => {
+    if (encerrado) {
+      return;
+    }
+    botaoIniciar.disabled = true;
+    novaRodada();
+  });
+}
+
+/* ---------- Qual função monta cada poder ---------- */
+const CONSTRUTORES_PODER = {
+  "arte": montarPincel,
+  "geografia": montarExpedicao, // NOVO: Expedição do Tesouro
+  "matematica": montarBoss,
+  "educacao-fisica": montarCorridaObstaculos, // NOVO: Corrida de Obstáculos
+  "experimentais": montarLaboratorio,
+  "portugues": montarLetras,
+  "ciencias": montarTerrario,
+  "historia": montarTempo,
+  "ingles": montarPlayer2,
+  "digital": montarInvasao // NOVO: Missão de Invasão
+};
+
+/* ---------- EVENTOS DA LOJA ---------- */
+botaoLoja.addEventListener("click", abrirLoja);
+botaoVoltarBoletim.addEventListener("click", voltarAoBoletim);
+/* NOVO: 🎒 Meus Poderes e o voltar dessa área */
+if (botaoPoderes) {
+  botaoPoderes.addEventListener("click", abrirMeusPoderes);
+}
+if (botaoVoltarPoderes) {
+  botaoVoltarPoderes.addEventListener("click", voltarAoBoletim);
+}
+botaoVoltarLoja.addEventListener("click", () => {
+  const eraPoderes = origemPoder === "poderes";
+  fecharPoder();
+  mostrarMensagem(mensagemLoja, "", "");
+  if (eraPoderes && areaPoderes) {
+    areaPoderes.hidden = false; // volta para o 🎒 em vez da loja
+    origemPoder = "loja";
+    window.scrollTo(0, 0);
+  }
+});

@@ -1723,89 +1723,52 @@ body.efeito-aurora {
 }
 
 /* =========================================================
-   NOVOS ESTILOS - ÁREA "MEUS PODERES"
-   A área nova reaproveita as classes da loja (loja-topo,
-   loja-saldo, loja-titulo, loja-poderes, poder-card).
-   Só o botão novo da barra de ações precisa de estilo.
+   NOVOS ESTILOS - MEUS PODERES (🎒), JOGOS REFEITOS E BÔNUS
+   O que entra aqui:
+   1) Botão 🎒 "Meus Poderes" (verde, para não confundir com a loja)
+   2) Expedição do Tesouro (Geografia, id geografia)
+   3) Missão de Invasão (Educação Digital, id digital)
+   4) Corrida de Obstáculos (Educação Física, id educacao-fisica)
+   5) Tela de fim de jogo com as pílulas de pontos e de bônus
+   6) Ajustes de celular e respeito a "menos animação"
+   (acrescentados ao final, preservando todo o restante)
    ========================================================= */
 
-/* Mesmo estilo do botão da loja: cor de apoio do tema */
+/* ====== BOTÃO 🎒 MEUS PODERES (na barra de ações) ====== */
+/* Verde = área de "usar" poderes; a loja continua azul */
 .botao-poderes {
-  border-color: var(--azul-suave);
-  background: rgba(var(--apoio-rgb), 0.15);
+  border-color: var(--bom);
+  background: rgba(74, 222, 128, 0.15);
 }
 
 .botao-poderes:hover {
-  background: rgba(var(--apoio-rgb), 0.3);
+  background: rgba(74, 222, 128, 0.3);
 }
 
-/* =========================================================
-   NOVOS ESTILOS - FIM DE RODADA E BÔNUS DOS JOGOS
-   Tela comum aos 3 jogos novos (Expedição, Invasão e
-   Corrida de Obstáculos). Fica por cima da área do jogo e
-   mostra o resultado e, quando você vence, os pontos bônus.
-   ========================================================= */
-
-.jogo-fim {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 5;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(18, 18, 28, 0.9);
-  text-align: center;
+/* Botão "Usar" dentro dos cartões da área Meus Poderes */
+.botao-usar {
+  border-color: var(--bom);
+  background: rgba(74, 222, 128, 0.15);
 }
 
-/* O script.js liga esta classe para mostrar a tela */
-.jogo-fim.aberto {
+.botao-usar:hover {
+  background: rgba(74, 222, 128, 0.3);
+}
+
+/* ====== EXPEDIÇÃO DO TESOURO (Geografia) ====== */
+/* O painel do jogo é "relative" para a tela de fim encaixar dentro dele */
+.expedicao {
+  position: relative;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.jogo-fim-titulo {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--roxo);
-}
-
-.jogo-fim-texto {
-  font-size: 0.92rem;
-  color: var(--texto-fraco);
-  line-height: 1.45;
-}
-
-.jogo-fim .botao {
-  margin-top: 6px;
-}
-
-/* Selo dourado com os pontos de bônus ganhos */
-.jogo-bonus {
-  padding: 6px 16px;
-  border: 1px solid var(--atencao);
-  border-radius: 999px;
-  background: rgba(251, 191, 36, 0.12);
-  color: var(--atencao);
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-/* =========================================================
-   NOVOS ESTILOS - EXPEDIÇÃO DO TESOURO (Geografia)
-   Você controla um barco e coleta baús nas ilhas.
-   Clique ou toque no mar: o barco navega até o ponto.
-   ========================================================= */
-
+/* HUD: passos restantes e gemas coletadas */
 .expedicao-hud {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
 }
 
 .expedicao-hud-item {
@@ -1819,162 +1782,261 @@ body.efeito-aurora {
 
 .expedicao-hud-item strong {
   margin-left: 6px;
-  font-size: 1.1rem;
   color: var(--atencao);
 }
 
-.expedicao-mar {
-  position: relative;
-  height: 420px;
-  margin-bottom: 12px;
+/* O mapa: grade de 7 colunas (o JS cria as células dentro dela) */
+.expedicao-map {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 520px;
+  padding: 12px;
   border: 1px solid var(--borda-card);
   border-radius: 16px;
-  overflow: hidden;
-  /* Toque no mar move o barco sem rolar a página */
-  touch-action: none;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(74, 222, 128, 0.12), transparent 55%),
+    rgba(0, 0, 0, 0.25);
+}
+
+.expedicao-celula {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border: 1px solid var(--borda-card);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
   user-select: none;
   -webkit-user-select: none;
-  cursor: crosshair;
-  background:
-    radial-gradient(circle at 25% 20%, rgba(var(--apoio-rgb), 0.16), transparent 55%),
-    radial-gradient(circle at 75% 80%, rgba(var(--destaque-rgb), 0.12), transparent 50%),
-    rgba(10, 22, 44, 0.55);
 }
 
-.expedicao-ilha {
+/* Células por onde o explorador já passou */
+.expedicao-celula.explorada {
+  background: rgba(74, 222, 128, 0.14);
+  border-color: rgba(74, 222, 128, 0.45);
+}
+
+/* Gema: brilha com a cor de apoio do tema */
+.expedicao-celula.gema {
+  animation: expedicao-brilho-azul 1.6s ease-in-out infinite;
+}
+
+/* Armadilha escondida: só revela quando o explorador pisa nela */
+.expedicao-celula.revelada {
+  background: rgba(255, 80, 80, 0.18);
+  border-color: #ff5050;
+  animation: expedicao-tremer 0.4s ease;
+}
+
+/* Célula do tesouro: o objetivo final da expedição */
+.expedicao-celula.tesouro {
+  animation: expedicao-brilho-ouro 2s ease-in-out infinite;
+}
+
+@keyframes expedicao-brilho-azul {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(var(--apoio-rgb), 0.2); }
+  50%      { box-shadow: 0 0 12px 3px rgba(var(--apoio-rgb), 0.55); }
+}
+
+@keyframes expedicao-brilho-ouro {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2); }
+  50%      { box-shadow: 0 0 12px 3px rgba(251, 191, 36, 0.55); }
+}
+
+@keyframes expedicao-tremer {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+
+/* O explorador: um único elemento que o JS move de célula em célula */
+.expedicao-jogador {
   position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  filter: drop-shadow(0 0 6px rgba(var(--destaque-rgb), 0.8));
+  pointer-events: none;
+}
+
+/* Setas de direção (botões grandes, bons para o dedo no celular) */
+.expedicao-controles {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.expedicao-seta {
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  margin-top: 0;
+  border: 1px solid var(--roxo);
+  border-radius: 12px;
+  background: rgba(var(--destaque-rgb), 0.15);
+  color: var(--texto-claro);
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.expedicao-seta:hover {
+  background: rgba(var(--destaque-rgb), 0.3);
+}
+
+.expedicao-seta:active {
+  transform: translateY(1px);
+}
+
+.expedicao-seta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.expedicao-msg {
+  min-height: 1.5em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--azul-suave);
+}
+
+/* ====== MISSÃO DE INVASÃO (Educação Digital) ====== */
+.invasao {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px;
-  border: 2px solid var(--borda-card);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.32);
-  font-size: 1.7rem;
-  transform: translate(-50%, -50%);
+  gap: 14px;
 }
 
-.expedicao-ilha.expedicao-ilha-coletada {
-  border-color: var(--bom);
-  opacity: 0.65;
+/* HUD: camadas restantes e tentativas */
+.invasao-hud {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.expedicao-ilha-rotulo {
-  max-width: 92px;
-  font-size: 0.6rem;
-  line-height: 1.2;
-  color: var(--texto-fraco);
-  text-align: center;
-}
-
-/* Baú que fica no canto de cada ilha */
-.expedicao-bau {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  font-size: 1.1rem;
-}
-
-/* Obstáculos do mar */
-.expedicao-redemoinho {
-  position: absolute;
-  font-size: 1.5rem;
-  transform: translate(-50%, -50%);
-  animation: expedicao-girar 3s linear infinite;
-}
-
-@keyframes expedicao-girar {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to   { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-.expedicao-tempestade {
-  position: absolute;
-  font-size: 1.7rem;
-  transform: translate(-50%, -50%);
-  filter: saturate(0.7);
-}
-
-/* Tesouro final: cinza até a meta de moedas ser alcançada */
-.expedicao-meta {
-  position: absolute;
-  font-size: 2rem;
-  transform: translate(-50%, -50%);
-  filter: grayscale(1);
-  transition: filter 0.4s ease;
-}
-
-.expedicao-meta.expedicao-meta-aberta {
-  filter: none;
-  animation: brilho-meta 2s ease-in-out infinite;
-}
-
-.expedicao-barco {
-  position: absolute;
-  font-size: 2rem;
-  transform: translate(-50%, -50%);
-  z-index: 3;
-}
-
-.expedicao-legenda {
-  font-size: 0.8rem;
-  color: var(--texto-fraco);
-  line-height: 1.5;
-}
-
-/* =========================================================
-   NOVOS ESTILOS - MISSÃO DE INVASÃO (Educação Digital)
-   Continua usando o terminal (.terminal e companhia, que já
-   existem). O que é novo: o cartão do objetivo da missão e a
-   barra de progresso das etapas.
-   ========================================================= */
-
-.invasao-objetivo {
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  border: 1px dashed rgba(74, 222, 128, 0.5);
-  border-radius: 10px;
-  background: rgba(74, 222, 128, 0.07);
-  font-family: "Courier New", monospace;
+.invasao-hud-item {
+  padding: 6px 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 999px;
+  background: var(--fundo-card);
   font-size: 0.85rem;
-  line-height: 1.5;
+  color: var(--texto-fraco);
+}
+
+.invasao-hud-item strong {
+  margin-left: 6px;
   color: #4ade80;
 }
 
-.invasao-objetivo strong {
-  color: #f1f1f7;
+/* A "parede" do firewall: cada camada é uma faixa verde */
+.invasao-firewall {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 14px;
+  background: #0b0f14;
 }
 
-.invasao-progresso {
-  height: 10px;
-  margin-bottom: 10px;
+.invasao-camada {
+  height: 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
+  background: rgba(74, 222, 128, 0.35);
+  transition: opacity 0.4s ease, background 0.4s ease;
 }
 
-.invasao-barra {
-  height: 100%;
-  width: 0;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #4ade80, #67e8f9);
-  transition: width 0.5s ease;
+/* Camada invadida com sucesso: apaga */
+.invasao-camada.quebrada {
+  opacity: 0.15;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* =========================================================
-   NOVOS ESTILOS - CORRIDA DE OBSTÁCULOS (Educação Física)
-   O corredor avança sozinho e você pula as bolas de faltas.
-   Toque/clique na pista ou aperte espaço para pular.
-   (As classes antigas .corrida-pista etc. continuam no
-   arquivo, porque a Máquina do Tempo usa .corrida-resultado.)
-   ========================================================= */
+/* Os 4 símbolos que piscam a sequência */
+.invasao-simbolos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
 
+.invasao-simbolo {
+  height: 74px;
+  padding: 0;
+  margin-top: 0;
+  border: 1px solid var(--borda-card);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--texto-claro);
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+/* Símbolo aceso durante a demonstração da sequência */
+.invasao-simbolo.acesa {
+  border-color: var(--azul-suave);
+  background: rgba(var(--apoio-rgb), 0.4);
+  box-shadow: 0 0 16px rgba(var(--apoio-rgb), 0.6);
+  transform: scale(1.06);
+}
+
+/* Acertou o símbolo da vez */
+.invasao-simbolo.acerto {
+  border-color: var(--bom);
+  background: rgba(74, 222, 128, 0.35);
+}
+
+/* Errou: pisca vermelho e treme */
+.invasao-simbolo.erro {
+  border-color: #ff5050;
+  background: rgba(255, 80, 80, 0.3);
+  animation: invasao-tremer 0.35s ease;
+}
+
+.invasao-simbolo:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@keyframes invasao-tremer {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+.invasao-msg {
+  min-height: 1.5em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--azul-suave);
+}
+
+/* ====== CORRIDA DE OBSTÁCULOS (Educação Física) ====== */
+/* Nomes novos (arena/jogador) para não mexer na corrida antiga,
+   porque a Máquina do Tempo ainda usa .corrida-resultado */
+.corrida-jogo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* HUD: distância percorrida e tentativas */
 .corrida-hud {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
 }
 
 .corrida-hud-item {
@@ -1988,82 +2050,256 @@ body.efeito-aurora {
 
 .corrida-hud-item strong {
   margin-left: 6px;
-  font-size: 1.1rem;
   color: var(--atencao);
 }
 
-.corrida-jogo {
+.corrida-arena {
   position: relative;
-  height: 280px;
-  margin-bottom: 10px;
+  height: 180px;
   border: 1px solid var(--borda-card);
   border-radius: 16px;
   overflow: hidden;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  cursor: pointer;
   background:
-    linear-gradient(180deg, rgba(var(--apoio-rgb), 0.1), rgba(var(--destaque-rgb), 0.06) 60%, rgba(0, 0, 0, 0.25) 100%),
-    linear-gradient(180deg, transparent 0, transparent 82%, rgba(255, 255, 255, 0.15) 82%, rgba(255, 255, 255, 0.15) 84%, transparent 84%),
-    rgba(0, 0, 0, 0.2);
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0,
+      rgba(255, 255, 255, 0.05) 2px,
+      transparent 2px,
+      transparent 11%
+    ),
+    linear-gradient(180deg, rgba(var(--apoio-rgb), 0.08), rgba(0, 0, 0, 0.3) 60%),
+    rgba(0, 0, 0, 0.25);
 }
 
-.corrida-atleta {
+/* Linha do chão (só enfeite) */
+.corrida-arena::after {
+  content: "";
   position: absolute;
-  bottom: 16%;
-  left: 12%;
+  left: 0;
+  right: 0;
+  bottom: 36px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.corrida-jogador {
+  position: absolute;
+  bottom: 38px;
+  left: 14%;
   font-size: 2.4rem;
   line-height: 1;
+  transform-origin: bottom center;
+  transition: bottom 0.22s ease, transform 0.22s ease;
   z-index: 2;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Pular (o JS liga e desliga essa classe) */
+.corrida-jogador.pulando {
+  bottom: 92px;
+}
+
+/* Rolar por baixo dos obstáculos altos */
+.corrida-jogador.abaixando {
+  transform: scaleY(0.4);
 }
 
 .corrida-obstaculo {
   position: absolute;
-  bottom: 16%;
-  font-size: 1.6rem;
+  bottom: 38px;
+  left: 100%;
+  font-size: 2rem;
   line-height: 1;
-  z-index: 2;
+  transition: left 0.16s linear;
+  z-index: 1;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.corrida-aviso {
-  font-size: 0.8rem;
+/* Obstáculo alto: precisa rolar por baixo */
+.corrida-obstaculo.alto {
+  bottom: 64px;
+}
+
+/* Bandeira de chegada: chega andando para a esquerda como os obstáculos */
+.corrida-meta {
+  position: absolute;
+  bottom: 38px;
+  left: 100%;
+  font-size: 2rem;
+  line-height: 1;
+  transition: left 0.16s linear;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Flash vermelho na pista quando bate */
+.corrida-arena.dano {
+  animation: corrida-dano 0.4s ease;
+}
+
+@keyframes corrida-dano {
+  0%, 100% { box-shadow: none; }
+  50%      { box-shadow: inset 0 0 30px rgba(255, 80, 80, 0.7); }
+}
+
+.corrida-botoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.corrida-botoes .botao {
+  margin-top: 0;
+}
+
+.corrida-msg {
+  min-height: 1.5em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--azul-suave);
+}
+
+/* ====== TELA DE FIM DE JOGO (comum aos 3 jogos) ====== */
+/* Fica por cima do palco do jogo, com resultado, pontos e bônus */
+.jogo-fim {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(18, 18, 28, 0.92);
+  border-radius: 16px;
+  text-align: center;
+  animation: jogo-fim-surgir 0.3s ease;
+}
+
+@keyframes jogo-fim-surgir {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.jogo-fim-titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--roxo);
+}
+
+.jogo-fim-titulo.vitoria {
+  color: var(--bom);
+}
+
+.jogo-fim-titulo.derrota {
+  color: #ff7b7b;
+}
+
+.jogo-fim-texto {
+  font-size: 0.95rem;
+  color: var(--texto-fraco);
+  line-height: 1.4;
+  max-width: 420px;
+}
+
+/* Pílula com os pontos ganhos na rodada */
+.jogo-fim-pontos {
+  padding: 6px 16px;
+  border: 1px solid var(--atencao);
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--atencao);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Pílula com o bônus de média (verde quando ganha) */
+.jogo-fim-bonus {
+  padding: 6px 16px;
+  border: 1px solid var(--bom);
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--bom);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Quando o bônus bate no teto de 500, a pílula fica cinza */
+.jogo-fim-bonus.bonus-teto {
+  border-color: var(--neutro);
+  background: rgba(156, 163, 175, 0.12);
   color: var(--texto-fraco);
 }
 
-/* =========================================================
-   NOVOS ESTILOS - CELULAR (jogos novos e botão)
-   ========================================================= */
+.jogo-fim .botao {
+  margin-top: 8px;
+}
+
+/* ====== JOGOS NOVOS NO CELULAR ====== */
 @media (max-width: 600px) {
   .botao-poderes {
     width: 100%;
   }
 
-  .expedicao-mar {
-    height: 340px;
+  .expedicao-map {
+    gap: 4px;
+    padding: 8px;
   }
 
-  .expedicao-ilha {
-    font-size: 1.3rem;
+  .expedicao-celula {
+    font-size: 1.05rem;
+    border-radius: 8px;
   }
 
-  .corrida-jogo {
-    height: 230px;
+  .expedicao-jogador {
+    font-size: 1.1rem;
   }
 
-  .corrida-atleta {
+  .expedicao-seta {
+    width: 48px;
+    height: 48px;
+  }
+
+  .invasao-simbolo {
+    height: 62px;
+    font-size: 1.5rem;
+  }
+
+  .corrida-arena {
+    height: 150px;
+  }
+
+  .corrida-jogador {
     font-size: 2rem;
+  }
+
+  .corrida-obstaculo,
+  .corrida-meta {
+    font-size: 1.7rem;
   }
 }
 
-/* Respeita quem prefere menos animação (jogos novos) */
+/* Respeita quem prefere menos animação (jogos novos e bônus) */
 @media (prefers-reduced-motion: reduce) {
-  .expedicao-redemoinho,
-  .expedicao-meta.expedicao-meta-aberta {
+  .jogo-fim,
+  .expedicao-celula.gema,
+  .expedicao-celula.tesouro,
+  .expedicao-celula.revelada,
+  .invasao-simbolo.erro,
+  .corrida-arena.dano {
     animation: none;
   }
 
-  .invasao-barra {
+  .invasao-simbolo,
+  .corrida-jogador,
+  .corrida-obstaculo,
+  .corrida-meta {
     transition: none;
   }
 }
